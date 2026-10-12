@@ -29,13 +29,13 @@ export class TestTrack {
   createMaterials() {
     return {
       grass: new THREE.MeshStandardMaterial({
-        color: 0x3d4a26, // dry autumn grass
-        roughness: 0.9,
+        color: 0x6e783a, // warm golden autumn grass
+        roughness: 0.85,
         metalness: 0.05
       }),
       asphalt: new THREE.MeshStandardMaterial({
-        color: 0x222428,
-        roughness: 0.85,
+        color: 0x34383f,
+        roughness: 0.80,
         metalness: 0.1
       }),
       roadMarking: new THREE.MeshBasicMaterial({
@@ -97,7 +97,7 @@ export class TestTrack {
 
   buildGround() {
     // Vast ground terrain
-    const groundGeo = new THREE.PlaneGeometry(240, 240);
+    const groundGeo = new THREE.PlaneGeometry(600, 600);
     const ground = new THREE.Mesh(groundGeo, this.materials.grass);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.01;
