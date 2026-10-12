@@ -1,0 +1,16 @@
+# Markdown files: ignore all except README.md and CONTRIBUTING.md
+*.md
+!README.md
+!CONTRIBUTING.md
+
+# Dependencies & build artifacts
+node_modules/
+dist/
+.vite/
+.cache/
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
