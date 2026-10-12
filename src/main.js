@@ -55,7 +55,7 @@ class GameApp {
     this.qualityManager.init();
 
     // 5. Atmosphere & Sky
-    this.sky = new AutumnSunsetSky(this.scene);
+    this.sky = new AutumnSunsetSky(this.scene, this.renderer);
 
     // 6. World & Test Track (Gate 2 & Grounds)
     this.track = new TestTrack(this.scene);

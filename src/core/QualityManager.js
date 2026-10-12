@@ -25,7 +25,7 @@ export class QualityManager {
       [QualityPreset.VISUAL]: {
         pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
         shadows: true,
-        shadowMapType: 2, // THREE.PCFSoftShadowMap
+        shadowMapType: 1, // THREE.PCFShadowMap
         particlesEnabled: true,
         volumetricLights: true,
         antiAliasing: true,

@@ -1,20 +1,29 @@
 import * as THREE from 'three';
+import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { eventBus } from '../core/EventBus.js';
 
 /**
- * Autumn Sunset Sky & Atmosphere
- * Shades of saturated orange, streaming sunset light, atmospheric haze,
- * and drifting autumn leaves particles
+ * High-Fidelity Autumn Sunset Sky & Atmosphere
+ * Features:
+ * - Physically-based Rayleigh/Mie atmospheric scattering sunset sky
+ * - Equirectangular sunset skybox & environment map for realistic car reflections
+ * - Golden-hour low sun casting long warm shadows
+ * - Warm ambient ground bounce lighting
+ * - Subtle autumn falling leaves particle system
  */
 export class AutumnSunsetSky {
-  constructor(scene) {
+  constructor(scene, renderer) {
     this.scene = scene;
-    this.lights = {};
-    this.leafParticles = null;
-    this.sunMesh = null;
+    this.renderer = renderer;
 
-    this.initSkyAndLighting();
-    this.initSunDisc();
+    this.sky = null;
+    this.sunVector = new THREE.Vector3();
+    this.dirLight = null;
+    this.hemiLight = null;
+    this.ambientLight = null;
+    this.leafParticles = null;
+
+    this.initSkyboxAndLighting();
     this.initAutumnLeaves();
 
     eventBus.on('quality:changed', (data) => {
@@ -22,163 +31,155 @@ export class AutumnSunsetSky {
     });
   }
 
-  initSkyAndLighting() {
-    // Autumn Sunset Palette: Deep amber orange to twilight indigo
-    const topColor = new THREE.Color(0xd35400); // deep saturated orange
-    const bottomColor = new THREE.Color(0xf39c12); // golden amber
+  initSkyboxAndLighting() {
+    // 1. Create Equirectangular Sunset Skybox Texture
+    const envTexture = this.createSunsetSkyboxTexture();
+    this.scene.background = envTexture;
+    this.scene.environment = envTexture;
 
-    // Hemisphere Light for soft warm ambient fill
-    const hemiLight = new THREE.HemisphereLight(topColor, bottomColor, 0.9);
-    hemiLight.position.set(0, 50, 0);
-    this.scene.add(hemiLight);
-    this.lights.hemi = hemiLight;
+    // 2. Physical Sky Dome (Rayleigh & Mie Scattering for realistic sunset atmosphere)
+    this.sky = new Sky();
+    this.sky.scale.setScalar(400000);
+    this.scene.add(this.sky);
 
-    // Ambient light
-    const ambientLight = new THREE.AmbientLight(0xff793f, 0.45);
-    this.scene.add(ambientLight);
-    this.lights.ambient = ambientLight;
+    // Sun position: Low sunset elevation (3.8 degrees above horizon)
+    const elevation = 3.8;
+    const azimuth = 210; // South-West
 
-    // Sunset Directional Light (Sun low on the horizon, casting long warm shadows)
-    const dirLight = new THREE.DirectionalLight(0xffbe76, 2.4);
-    dirLight.position.set(-60, 24, -45); // low sunset angle
-    dirLight.castShadow = true;
+    const phi = THREE.MathUtils.degToRad(90 - elevation);
+    const theta = THREE.MathUtils.degToRad(azimuth);
+    this.sunVector.setFromSphericalCoords(1, phi, theta);
 
-    // Shadow configuration
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    dirLight.shadow.camera.near = 0.5;
-    dirLight.shadow.camera.far = 180;
+    const uniforms = this.sky.material.uniforms;
+    uniforms['turbidity'].value = 8.0;
+    uniforms['rayleigh'].value = 3.2; // intense orange/red sky scattering
+    uniforms['mieCoefficient'].value = 0.006;
+    uniforms['mieDirectionalG'].value = 0.82; // prominent sun halo
+    uniforms['sunPosition'].value.copy(this.sunVector);
 
-    const d = 50;
-    dirLight.shadow.camera.left = -d;
-    dirLight.shadow.camera.right = d;
-    dirLight.shadow.camera.top = d;
-    dirLight.shadow.camera.bottom = -d;
-    dirLight.shadow.bias = -0.0004;
+    // 3. Directional Sun Light (Low-angle warm golden sunlight)
+    this.dirLight = new THREE.DirectionalLight(0xffbe76, 2.6);
+    this.dirLight.position.copy(this.sunVector).multiplyScalar(90);
+    this.dirLight.castShadow = true;
 
-    this.scene.add(dirLight);
-    this.lights.sun = dirLight;
+    this.dirLight.shadow.mapSize.width = 2048;
+    this.dirLight.shadow.mapSize.height = 2048;
+    this.dirLight.shadow.camera.near = 1.0;
+    this.dirLight.shadow.camera.far = 250;
 
-    // Autumn sunset fog / haze
-    this.scene.fog = new THREE.FogExp2(0xcd6133, 0.009);
+    const d = 55;
+    this.dirLight.shadow.camera.left = -d;
+    this.dirLight.shadow.camera.right = d;
+    this.dirLight.shadow.camera.top = d;
+    this.dirLight.shadow.camera.bottom = -d;
+    this.dirLight.shadow.bias = -0.0003;
 
-    // Dynamic Sky Dome
-    this.createSkyDome();
+    this.scene.add(this.dirLight);
+
+    // 4. Soft Warm Ambient Fill Light (prevents black shadow pitch)
+    this.hemiLight = new THREE.HemisphereLight(0xff8c42, 0x4a2a18, 1.1);
+    this.hemiLight.position.set(0, 60, 0);
+    this.scene.add(this.hemiLight);
+
+    this.ambientLight = new THREE.AmbientLight(0xff9944, 0.45);
+    this.scene.add(this.ambientLight);
+
+    // 5. Atmospheric Sunset Horizon Fog
+    this.scene.fog = new THREE.FogExp2(0xd35400, 0.007);
   }
 
-  createSkyDome() {
-    const skyGeo = new THREE.SphereGeometry(140, 32, 16);
-    // Invert geometry to view from inside
-    skyGeo.scale(-1, 1, 1);
-
-    // Canvas gradient for smooth saturated sunset sky
+  createSunsetSkyboxTexture() {
+    // Generates a rich 360-degree panorama of a saturated autumn sunset
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
+    canvas.width = 2048;
+    canvas.height = 1024;
     const ctx = canvas.getContext('2d');
 
-    const grad = ctx.createLinearGradient(0, 0, 0, 512);
-    grad.addColorStop(0.0, '#3d122e'); // twilight dusk purple
-    grad.addColorStop(0.35, '#a83232'); // crimson sunset
-    grad.addColorStop(0.65, '#e15f21'); // fiery saturated orange
-    grad.addColorStop(0.85, '#f39c12'); // golden amber horizon
-    grad.addColorStop(1.0, '#d35400'); // ground haze
+    // Sky gradient: Zenith dusk purple -> Crimson -> Fiery Saturated Orange -> Golden Amber Horizon -> Warm ground
+    const grad = ctx.createLinearGradient(0, 0, 0, 1024);
+    grad.addColorStop(0.00, '#1a0b2e'); // deep dusk violet at zenith
+    grad.addColorStop(0.20, '#4a153b'); // purple crimson
+    grad.addColorStop(0.40, '#8c2424'); // autumn red
+    grad.addColorStop(0.55, '#d35400'); // saturated autumn orange
+    grad.addColorStop(0.68, '#f39c12'); // golden amber sun horizon
+    grad.addColorStop(0.72, '#ffbe76'); // glowing sunset band
+    grad.addColorStop(0.75, '#b04a1b'); // horizon warm haze
+    grad.addColorStop(1.00, '#3d2012'); // ground reflection
 
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 512, 512);
+    ctx.fillRect(0, 0, 2048, 1024);
 
-    const skyTex = new THREE.CanvasTexture(canvas);
-    const skyMat = new THREE.MeshBasicMaterial({
-      map: skyTex,
-      side: THREE.BackSide,
-      fog: false
-    });
+    // Sun disc and volumetric glow at azimuth ~ 210 degrees (X ~ 1200)
+    const sunX = (210 / 360) * 2048;
+    const sunY = 1024 * 0.69;
 
-    const skyDome = new THREE.Mesh(skyGeo, skyMat);
-    skyDome.position.set(0, 0, 0);
-    this.scene.add(skyDome);
-  }
+    // Wide atmospheric glow
+    const glowGrad = ctx.createRadialGradient(sunX, sunY, 15, sunX, sunY, 480);
+    glowGrad.addColorStop(0.0, 'rgba(255, 255, 230, 1.0)');
+    glowGrad.addColorStop(0.15, 'rgba(255, 200, 100, 0.85)');
+    glowGrad.addColorStop(0.4, 'rgba(235, 94, 40, 0.55)');
+    glowGrad.addColorStop(0.8, 'rgba(200, 60, 20, 0.15)');
+    glowGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
 
-  initSunDisc() {
-    // Glowing sun disc on the horizon
-    const sunGroup = new THREE.Group();
-    sunGroup.position.set(-90, 36, -68);
+    ctx.fillStyle = glowGrad;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 480, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Central Sun Disc
-    const discGeo = new THREE.CircleGeometry(6.5, 32);
-    const discMat = new THREE.MeshBasicMaterial({
-      color: 0xfffae6,
-      fog: false
-    });
-    const disc = new THREE.Mesh(discGeo, discMat);
-    disc.lookAt(0, 0, 0);
-    sunGroup.add(disc);
+    // Intense core sun disc
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 32, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Sun Halo / Glow Ring
-    const haloGeo = new THREE.RingGeometry(6.4, 18.0, 32);
-    const haloMat = new THREE.MeshBasicMaterial({
-      color: 0xffa502,
-      transparent: true,
-      opacity: 0.38,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-      fog: false
-    });
-    const halo = new THREE.Mesh(haloGeo, haloMat);
-    halo.lookAt(0, 0, 0);
-    sunGroup.add(halo);
-
-    this.scene.add(sunGroup);
-    this.sunMesh = sunGroup;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
   }
 
   initAutumnLeaves() {
-    // Particle system of drifting golden and crimson leaves
-    const particleCount = 280;
+    const count = 300;
     const geo = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
-    const scales = new Float32Array(particleCount);
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
 
-    const leafPalettes = [
-      new THREE.Color(0xe67e22), // carrot orange
+    const palette = [
       new THREE.Color(0xd35400), // rust orange
       new THREE.Color(0xf39c12), // sun gold
-      new THREE.Color(0xc0392b), // maple crimson
-      new THREE.Color(0xf1c40f)  // autumn yellow
+      new THREE.Color(0xc0392b), // maple red
+      new THREE.Color(0xe67e22)  // amber
     ];
 
-    for (let i = 0; i < particleCount; i++) {
-      positions[i * 3 + 0] = (Math.random() - 0.5) * 120;
-      positions[i * 3 + 1] = Math.random() * 14 + 0.5;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 120;
+    for (let i = 0; i < count; i++) {
+      positions[i * 3 + 0] = (Math.random() - 0.5) * 110;
+      positions[i * 3 + 1] = Math.random() * 16 + 0.5;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 110;
 
-      const col = leafPalettes[Math.floor(Math.random() * leafPalettes.length)];
+      const col = palette[Math.floor(Math.random() * palette.length)];
       colors[i * 3 + 0] = col.r;
       colors[i * 3 + 1] = col.g;
       colors[i * 3 + 2] = col.b;
-
-      scales[i] = Math.random() * 0.25 + 0.15;
     }
 
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-    // Simple procedural leaf texture
-    const canvas = document.createElement('canvas');
-    canvas.width = 32;
-    canvas.height = 32;
-    const ctx = canvas.getContext('2d');
+    // Leaf particle texture
+    const c = document.createElement('canvas');
+    c.width = 32;
+    c.height = 32;
+    const ctx = c.getContext('2d');
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.ellipse(16, 16, 14, 8, Math.PI / 4, 0, Math.PI * 2);
+    ctx.ellipse(16, 16, 13, 7, Math.PI / 4, 0, Math.PI * 2);
     ctx.fill();
 
-    const leafTex = new THREE.CanvasTexture(canvas);
+    const tex = new THREE.CanvasTexture(c);
 
     const mat = new THREE.PointsMaterial({
-      size: 0.45,
-      map: leafTex,
+      size: 0.42,
+      map: tex,
       vertexColors: true,
       transparent: true,
       opacity: 0.85,
@@ -193,8 +194,8 @@ export class AutumnSunsetSky {
     if (this.leafParticles) {
       this.leafParticles.visible = settings.particlesEnabled;
     }
-    if (this.lights.sun) {
-      this.lights.sun.castShadow = settings.shadows;
+    if (this.dirLight) {
+      this.dirLight.castShadow = settings.shadows;
     }
     if (this.scene.fog) {
       this.scene.fog.density = settings.fogDensity;
@@ -202,24 +203,20 @@ export class AutumnSunsetSky {
   }
 
   update(dt, carPos) {
-    // Animate drifting leaves
     if (this.leafParticles && this.leafParticles.visible) {
-      const positions = this.leafParticles.geometry.attributes.position.array;
-      const count = positions.length / 3;
+      const pos = this.leafParticles.geometry.attributes.position.array;
+      const count = pos.length / 3;
 
       for (let i = 0; i < count; i++) {
-        // Drift with sunset wind (+X and -Z)
-        positions[i * 3 + 0] += Math.sin(Date.now() * 0.001 + i) * 0.05 + 0.04;
-        positions[i * 3 + 1] -= dt * 0.6; // gentle fall
-        positions[i * 3 + 2] += Math.cos(Date.now() * 0.001 + i) * 0.03 + 0.02;
+        pos[i * 3 + 0] += Math.sin(Date.now() * 0.001 + i) * 0.04 + 0.03;
+        pos[i * 3 + 1] -= dt * 0.55;
+        pos[i * 3 + 2] += Math.cos(Date.now() * 0.001 + i) * 0.03 + 0.02;
 
-        // Reset if leaf touches ground
-        if (positions[i * 3 + 1] < 0.1) {
-          positions[i * 3 + 1] = 12 + Math.random() * 4;
-          // Re-center around car
+        if (pos[i * 3 + 1] < 0.1) {
+          pos[i * 3 + 1] = 14 + Math.random() * 4;
           if (carPos) {
-            positions[i * 3 + 0] = carPos.x + (Math.random() - 0.5) * 80;
-            positions[i * 3 + 2] = carPos.z + (Math.random() - 0.5) * 80;
+            pos[i * 3 + 0] = carPos.x + (Math.random() - 0.5) * 80;
+            pos[i * 3 + 2] = carPos.z + (Math.random() - 0.5) * 80;
           }
         }
       }
