@@ -89,10 +89,22 @@ export class CameraManager {
     eventBus.emit('camera:changed', this.mode);
   }
 
+  setTargetVehicle(vehicle) {
+    this.targetVehicle = vehicle;
+  }
+
   update(dt) {
     const carPos = this.targetVehicle.position;
     const carRotY = this.targetVehicle.rotation.y;
     const carSpeed = this.targetVehicle.speed;
+    const isBoosting = Boolean(this.targetVehicle.isBoosting);
+
+    // Boost FOV kick (60° normal -> 68° when boosting)
+    const targetFov = isBoosting ? 68.0 : 60.0;
+    if (Math.abs(this.camera.fov - targetFov) > 0.05) {
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, THREE.MathUtils.clamp(dt * 5.0, 0, 1));
+      this.camera.updateProjectionMatrix();
+    }
 
     if (this.mode === CameraMode.CHASE) {
       // Dynamic chase camera with speed offset

@@ -24,6 +24,10 @@ export class VehicleAudio {
     this.hornOsc2 = null;
     this.hornGain = null;
     this.isHornPlaying = false;
+
+    // Turbo / Boost synth nodes
+    this.turboOsc = null;
+    this.turboGain = null;
   }
 
   init() {
@@ -41,6 +45,7 @@ export class VehicleAudio {
       this.initEngineSynth();
       this.initSquealSynth();
       this.initHornSynth();
+      this.initTurboSynth();
 
       this.isInitialized = true;
     } catch (e) {
@@ -131,7 +136,20 @@ export class VehicleAudio {
     this.hornOsc2.start();
   }
 
-  update(speedKmh, isAccelerating, isSlipping) {
+  initTurboSynth() {
+    // High-pitched turbo spool whistle
+    this.turboGain = this.ctx.createGain();
+    this.turboGain.gain.value = 0;
+    this.turboGain.connect(this.masterGain);
+
+    this.turboOsc = this.ctx.createOscillator();
+    this.turboOsc.type = 'sine';
+    this.turboOsc.frequency.value = 850;
+    this.turboOsc.connect(this.turboGain);
+    this.turboOsc.start();
+  }
+
+  update(speedKmh, isAccelerating, isSlipping, isBoosting = false) {
     if (!this.isInitialized || this.isMuted || !this.ctx) return;
 
     const now = this.ctx.currentTime;
@@ -140,9 +158,16 @@ export class VehicleAudio {
     const ratio = Math.min(speedKmh / 120, 1.0);
     // Gear shift sawtooth modulation
     const gearModulo = (ratio * 4) % 1;
-    const targetFreq = 42 + ratio * 110 + gearModulo * 35;
-    const filterFreq = 300 + ratio * 550 + (isAccelerating ? 200 : 0);
-    const targetGain = 0.08 + (isAccelerating ? 0.07 : 0) + ratio * 0.05;
+    let targetFreq = 42 + ratio * 110 + gearModulo * 35;
+    let filterFreq = 300 + ratio * 550 + (isAccelerating ? 200 : 0);
+    let targetGain = 0.08 + (isAccelerating ? 0.07 : 0) + ratio * 0.05;
+
+    // Boost effect on engine
+    if (isBoosting) {
+      targetFreq *= 1.35;
+      filterFreq += 450;
+      targetGain += 0.06;
+    }
 
     this.engineOsc.frequency.setTargetAtTime(targetFreq, now, 0.08);
     this.engineSubOsc.frequency.setTargetAtTime(targetFreq * 0.5, now, 0.08);
@@ -152,6 +177,14 @@ export class VehicleAudio {
     // Tire squeal gain
     const squealTarget = isSlipping ? 0.22 : 0;
     this.squealGain.gain.setTargetAtTime(squealTarget, now, 0.05);
+
+    // Turbo spool sound
+    if (this.turboGain && this.turboOsc) {
+      const turboTargetGain = isBoosting ? 0.12 : 0;
+      const turboFreq = 850 + ratio * 900;
+      this.turboOsc.frequency.setTargetAtTime(turboFreq, now, 0.06);
+      this.turboGain.gain.setTargetAtTime(turboTargetGain, now, 0.06);
+    }
   }
 
   playHorn(active) {

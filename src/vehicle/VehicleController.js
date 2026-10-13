@@ -7,7 +7,8 @@ export const VehicleState = {
   CRUISING: 'CRUISING',
   BRAKING: 'BRAKING',
   REVERSING: 'REVERSING',
-  DRIFTING: 'DRIFTING'
+  DRIFTING: 'DRIFTING',
+  BOOSTING: 'BOOSTING'
 };
 
 export class VehicleController {
@@ -21,7 +22,8 @@ export class VehicleController {
       backward: false,
       left: false,
       right: false,
-      handbrake: false
+      handbrake: false,
+      boost: false
     };
 
     this.stateMachine = new StateMachine(VehicleState.IDLE);
@@ -29,55 +31,67 @@ export class VehicleController {
     this.setupKeyboardListeners();
   }
 
+  setModel(newModel) {
+    this.carModel = newModel;
+    if (this.physics) {
+      this.physics.setModel(newModel);
+    }
+  }
+
   setupStateMachine() {
     this.stateMachine
       .addState(VehicleState.IDLE, {
         onEnter: () => {
-          this.carModel.setBrakeLights(false);
-          this.carModel.setReverseLights(false);
+          if (this.carModel.setBrakeLights) this.carModel.setBrakeLights(false);
+          if (this.carModel.setReverseLights) this.carModel.setReverseLights(false);
         }
       })
       .addState(VehicleState.ACCELERATING, {
         onEnter: () => {
-          this.carModel.setBrakeLights(false);
-          this.carModel.setReverseLights(false);
+          if (this.carModel.setBrakeLights) this.carModel.setBrakeLights(false);
+          if (this.carModel.setReverseLights) this.carModel.setReverseLights(false);
+        }
+      })
+      .addState(VehicleState.BOOSTING, {
+        onEnter: () => {
+          if (this.carModel.setBrakeLights) this.carModel.setBrakeLights(false);
+          if (this.carModel.setReverseLights) this.carModel.setReverseLights(false);
         }
       })
       .addState(VehicleState.CRUISING, {
         onEnter: () => {
-          this.carModel.setBrakeLights(false);
-          this.carModel.setReverseLights(false);
+          if (this.carModel.setBrakeLights) this.carModel.setBrakeLights(false);
+          if (this.carModel.setReverseLights) this.carModel.setReverseLights(false);
         }
       })
       .addState(VehicleState.BRAKING, {
         onEnter: () => {
-          this.carModel.setBrakeLights(true);
+          if (this.carModel.setBrakeLights) this.carModel.setBrakeLights(true);
         },
         onExit: () => {
-          this.carModel.setBrakeLights(false);
+          if (this.carModel.setBrakeLights) this.carModel.setBrakeLights(false);
         }
       })
       .addState(VehicleState.REVERSING, {
         onEnter: () => {
-          this.carModel.setReverseLights(true);
+          if (this.carModel.setReverseLights) this.carModel.setReverseLights(true);
         },
         onExit: () => {
-          this.carModel.setReverseLights(false);
+          if (this.carModel.setReverseLights) this.carModel.setReverseLights(false);
         }
       })
       .addState(VehicleState.DRIFTING, {
         onEnter: () => {
-          this.carModel.setBrakeLights(true);
+          if (this.carModel.setBrakeLights) this.carModel.setBrakeLights(true);
         },
         onExit: () => {
-          this.carModel.setBrakeLights(false);
+          if (this.carModel.setBrakeLights) this.carModel.setBrakeLights(false);
         }
       });
   }
 
   setupKeyboardListeners() {
     window.addEventListener('keydown', (e) => {
-      // Unsuspend audio context on any key press
       if (this.audio) this.audio.ensureContext();
 
       switch (e.code) {
@@ -97,6 +111,10 @@ export class VehicleController {
         case 'ArrowRight':
           this.input.right = true;
           break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          this.input.boost = true;
+          break;
         case 'Space':
           this.input.handbrake = true;
           e.preventDefault();
@@ -106,8 +124,10 @@ export class VehicleController {
           eventBus.emit('vehicle:reset');
           break;
         case 'KeyL':
-          const lightsOn = this.carModel.toggleHeadlights();
-          eventBus.emit('vehicle:lights', lightsOn);
+          if (this.carModel.toggleHeadlights) {
+            const lightsOn = this.carModel.toggleHeadlights();
+            eventBus.emit('vehicle:lights', lightsOn);
+          }
           break;
         case 'KeyH':
           if (!e.repeat && this.audio) {
@@ -144,6 +164,10 @@ export class VehicleController {
         case 'ArrowRight':
           this.input.right = false;
           break;
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          this.input.boost = false;
+          break;
         case 'Space':
           this.input.handbrake = false;
           break;
@@ -156,7 +180,6 @@ export class VehicleController {
     });
   }
 
-  // Virtual touch controls / UI buttons
   setVirtualInput(action, active) {
     if (this.audio) this.audio.ensureContext();
     if (this.input[action] !== undefined) {
@@ -165,11 +188,11 @@ export class VehicleController {
   }
 
   update(dt) {
-    // Update physics simulation
     this.physics.update(dt, this.input);
 
     const speed = this.physics.speed;
     const isSlipping = this.physics.isSlipping();
+    const isBoosting = this.physics.isBoosting;
 
     // Determine state
     let nextState = VehicleState.IDLE;
@@ -177,6 +200,8 @@ export class VehicleController {
       nextState = VehicleState.DRIFTING;
     } else if (this.input.handbrake || (this.input.backward && speed > 0.5)) {
       nextState = VehicleState.BRAKING;
+    } else if (isBoosting) {
+      nextState = VehicleState.BOOSTING;
     } else if (this.input.forward && speed >= -0.5) {
       nextState = VehicleState.ACCELERATING;
     } else if (speed < -0.2) {
@@ -188,9 +213,9 @@ export class VehicleController {
     this.stateMachine.transitionTo(nextState);
     this.stateMachine.update(dt);
 
-    // Audio update
+    // Audio update (scales pitch with boost)
     if (this.audio) {
-      this.audio.update(this.physics.getSpeedKmh(), this.input.forward, isSlipping);
+      this.audio.update(this.physics.getSpeedKmh(), this.input.forward, isSlipping, isBoosting);
     }
 
     // Telemetry event emission
@@ -199,7 +224,9 @@ export class VehicleController {
       gear: this.physics.getGear(),
       state: this.stateMachine.getState(),
       steeringAngle: this.physics.steeringAngle,
-      position: this.physics.position
+      position: this.physics.position,
+      isBoosting: isBoosting,
+      boostPercent: this.physics.getBoostPercent()
     });
   }
 }
