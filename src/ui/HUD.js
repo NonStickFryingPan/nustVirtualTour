@@ -1,133 +1,73 @@
 import { eventBus } from '../core/EventBus.js';
-import { QualityPreset } from '../core/QualityManager.js';
-import { CameraMode } from '../camera/CameraManager.js';
 
 export class HUD {
-  constructor(qualityManager, vehicleController, initialConfig = null) {
+  constructor(qualityManager, vehicleController) {
     this.qualityManager = qualityManager;
     this.vehicleController = vehicleController;
-    this.currentVehicleConfig = initialConfig;
 
     this.container = null;
     this.speedEl = null;
-    this.gearEl = null;
-    this.qualityBtn = null;
-    this.cameraBtn = null;
-    this.lightsBtn = null;
-    this.audioBtn = null;
+    this.speedArcEl = null;
+    this.minimapCanvas = null;
+    this.minimapCtx = null;
 
     this.init();
     this.setupListeners();
+    this.initMinimap();
   }
 
   init() {
     this.container = document.createElement('div');
     this.container.id = 'hud-overlay';
     this.container.innerHTML = `
-      <!-- Header -->
-      <div class="hud-header">
-        <div class="brand-badge">
-          <div class="brand-title">
-            <span id="brand-car-name">${this.currentVehicleConfig?.name || 'SUZUKI ALTO'}</span>
-            <span id="brand-badge-pill" class="badge-pill">${this.currentVehicleConfig?.badge || '660cc'}</span>
+      <!-- Top Left: Mission / Objective Pill (Matching Reference) -->
+      <div class="hud-top-left">
+        <div class="mission-pill">
+          <div class="mission-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#f39c12">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
           </div>
-          <div id="brand-car-sub" class="brand-subtitle">${this.currentVehicleConfig?.description || 'NUST Campus Virtual Tour • Gate 2 to SINES'}</div>
-        </div>
-
-        <div class="header-actions">
-          <div class="vehicle-select-wrapper">
-            <select id="vehicle-selector" class="hud-select" title="Switch Vehicle">
-              <option value="alto_glb" selected>🚗 Suzuki Alto (3D Textured)</option>
-              <option value="f1_race">🏎️ F1 Speedster</option>
-              <option value="firetruck">🚒 NUST Fire Rescue</option>
-              <option value="hatchback">🚘 Sports Hatchback</option>
-              <option value="alto_poly">📐 Suzuki Alto (Low-Poly)</option>
-            </select>
+          <div class="mission-text">
+            <div class="mission-title">Go to SINES</div>
+            <div class="mission-subtitle">From Gate 2 to SINES</div>
           </div>
-
-          <button id="btn-camera" class="hud-btn" title="Toggle Camera (Key C)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <span id="label-camera">Camera: Chase</span>
-          </button>
-
-          <button id="btn-inspect" class="hud-btn" title="360° Car Inspection View">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-            <span>Inspect 360°</span>
-          </button>
-
-          <button id="btn-quality" class="hud-btn" title="Toggle Visual/Performance Mode">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-            <span id="label-quality">Visual Mode</span>
-          </button>
-
-          <button id="btn-lights" class="hud-btn" title="Toggle Headlights (Key L)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
-            <span>Lights</span>
-          </button>
-
-          <button id="btn-horn" class="hud-btn" title="Horn (Key H)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-            <span>Horn</span>
-          </button>
-
-          <button id="btn-reset" class="hud-btn" title="Reset Car to Spawn (Key R)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-            <span>Reset</span>
-          </button>
         </div>
       </div>
 
-      <!-- Destination Arrival Banner -->
-      <div id="destination-banner" class="destination-banner" style="display: none;">
-        <span class="dest-icon">🎯</span>
-        <div class="dest-text">
-          <div class="dest-title">DESTINATION REACHED: SINES (NUST)</div>
-          <div class="dest-sub">School of Interdisciplinary Engineering & Sciences • Iteration 1 Complete!</div>
-        </div>
-      </div>
-
-      <!-- Footer / Controls & Telemetry -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%;">
-        <!-- Controls Legend -->
-        <div class="controls-legend">
-          <div class="legend-title">
-            <span>Controls</span>
-            <span style="opacity: 0.7;">Gate 2 ➔ SINES</span>
-          </div>
-          <div class="legend-grid">
-            <div class="legend-item"><span class="key-cap">W</span><span>Accelerate</span></div>
-            <div class="legend-item"><span class="key-cap">S</span><span>Brake / Rev</span></div>
-            <div class="legend-item"><span class="key-cap">A</span><span class="key-cap">D</span><span>Steering</span></div>
-            <div class="legend-item"><span class="key-cap">Shift</span><span>Nitro Boost</span></div>
-            <div class="legend-item"><span class="key-cap">Space</span><span>Handbrake (Drift)</span></div>
-            <div class="legend-item"><span class="key-cap">C</span><span>Camera</span></div>
-            <div class="legend-item"><span class="key-cap">L</span><span>Lights</span></div>
-            <div class="legend-item"><span class="key-cap">H</span><span>Horn</span></div>
-            <div class="legend-item"><span class="key-cap">R</span><span>Reset</span></div>
-          </div>
+      <!-- Bottom Layout: Minimap (Left) & Speedometer (Right) -->
+      <div class="hud-bottom-row">
+        <!-- Bottom Left: Circular GPS Minimap Radar -->
+        <div class="minimap-wrapper">
+          <canvas id="minimap-canvas" width="180" height="180"></canvas>
+          <div class="minimap-compass-n">N</div>
         </div>
 
-        <!-- Telemetry Cluster -->
-        <div class="hud-telemetry">
-          <div class="gauge-cluster">
-            <div class="speed-display">
-              <span id="hud-speed" class="speed-number">0</span>
-              <span class="speed-unit">KM / H</span>
-              <span class="speed-limit">CAMPUS LIMIT: 40</span>
-            </div>
-            <div class="gear-display">
-              <span id="hud-gear" class="gear-indicator">P</span>
-              <span class="gear-label">GEAR</span>
-            </div>
-            <div class="boost-display">
-              <div class="boost-meta">
-                <span class="boost-title">NITRO</span>
-                <span id="hud-boost-val" class="boost-val">100%</span>
-              </div>
-              <div class="boost-bar-bg">
-                <div id="hud-boost-bar" class="boost-bar-fill" style="width: 100%;"></div>
-              </div>
-              <span class="boost-hint">[SHIFT] BOOST</span>
+        <!-- Bottom Right: Circular Speedometer & Fuel Gauge -->
+        <div class="speedo-cluster">
+          <svg class="speedo-svg" viewBox="0 0 160 160" width="160" height="160">
+            <!-- Background Arc -->
+            <path d="M 30 130 A 70 70 0 1 1 130 130" fill="none" stroke="rgba(255, 255, 255, 0.15)" stroke-width="7" stroke-linecap="round"/>
+            <!-- Active Speed Arc -->
+            <path id="speedo-active-arc" d="M 30 130 A 70 70 0 1 1 130 130" fill="none" stroke="#ffffff" stroke-width="8" stroke-dasharray="320" stroke-dashoffset="320" stroke-linecap="round"/>
+          </svg>
+
+          <!-- Digital Readout in center -->
+          <div class="speedo-digital">
+            <span id="hud-speed-num" class="speedo-value">42</span>
+            <span class="speedo-unit">km/h</span>
+          </div>
+
+          <!-- Fuel Gauge Bar -->
+          <div class="fuel-cluster">
+            <svg class="fuel-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2">
+              <path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/>
+              <path d="M15 10h2a2 2 0 0 1 2 2v3a1 1 0 0 0 1 1v0a1 1 0 0 0 1-1V8l-3-3"/>
+              <path d="M3 22h12"/>
+              <rect x="6" y="6" width="6" height="5"/>
+            </svg>
+            <div class="fuel-bar-track">
+              <div class="fuel-bar-fill"></div>
             </div>
           </div>
         </div>
@@ -136,130 +76,168 @@ export class HUD {
 
     document.body.appendChild(this.container);
 
-    this.speedEl = document.getElementById('hud-speed');
-    this.gearEl = document.getElementById('hud-gear');
-    this.qualityBtn = document.getElementById('btn-quality');
-    this.cameraBtn = document.getElementById('btn-camera');
-    this.lightsBtn = document.getElementById('btn-lights');
-
-    this.setupButtonEvents();
+    this.speedEl = document.getElementById('hud-speed-num');
+    this.speedArcEl = document.getElementById('speedo-active-arc');
+    this.minimapCanvas = document.getElementById('minimap-canvas');
+    if (this.minimapCanvas) {
+      this.minimapCtx = this.minimapCanvas.getContext('2d');
+    }
   }
 
-  setupButtonEvents() {
-    const vehicleSelector = document.getElementById('vehicle-selector');
-    if (vehicleSelector) {
-      vehicleSelector.addEventListener('change', (e) => {
-        eventBus.emit('vehicle:select', e.target.value);
-        vehicleSelector.blur();
-      });
-    }
+  initMinimap() {
+    this.renderMinimap(-2.2, -5, 0);
+  }
 
-    this.qualityBtn.addEventListener('click', () => {
-      const next = this.qualityManager.toggleMode();
-      this.updateQualityLabel(next);
+  renderMinimap(playerX, playerZ, playerRotY) {
+    if (!this.minimapCtx) return;
+    const ctx = this.minimapCtx;
+    const w = 180;
+    const h = 180;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = w / 2 - 4;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 1. Circular Clip
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+
+    // 2. Dark Radar Background
+    ctx.fillStyle = '#181b22';
+    ctx.fillRect(0, 0, w, h);
+
+    // 3. Stylized Campus Buildings
+    ctx.fillStyle = '#282d38';
+    // Campus buildings layout relative to world
+    const buildings = [
+      { x: -30, z: 20, w: 22, h: 32 },
+      { x: -34, z: 75, w: 24, h: 40 },
+      { x: -36, z: 140, w: 28, h: 36 },
+      { x: 38, z: 35, w: 26, h: 30 },
+      { x: 42, z: 95, w: 32, h: 42 },
+      { x: 44, z: 160, w: 26, h: 38 },
+      // SINES complex
+      { x: 12, z: 220, w: 42, h: 28 }
+    ];
+
+    // Coordinate mapping scale: 1 world meter = 0.55 radar pixels
+    const scale = 0.58;
+    const mapOffsetX = cx - playerX * scale;
+    const mapOffsetZ = cy + playerZ * scale;
+
+    buildings.forEach((b) => {
+      const bx = mapOffsetX + b.x * scale;
+      const bz = mapOffsetZ - (b.z + b.h) * scale;
+      ctx.fillRect(bx, bz, b.w * scale, b.h * scale);
     });
 
-    this.cameraBtn.addEventListener('click', () => {
-      eventBus.emit('camera:cycle');
-    });
+    // 4. Secondary Side Roads / Paths
+    ctx.strokeStyle = '#323846';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    // Cross road at Z = 50
+    ctx.moveTo(mapOffsetX - 60 * scale, mapOffsetZ - 50 * scale);
+    ctx.lineTo(mapOffsetX + 70 * scale, mapOffsetZ - 50 * scale);
+    // Cross road at Z = 130
+    ctx.moveTo(mapOffsetX - 50 * scale, mapOffsetZ - 130 * scale);
+    ctx.lineTo(mapOffsetX + 65 * scale, mapOffsetZ - 130 * scale);
+    ctx.stroke();
 
-    document.getElementById('btn-inspect').addEventListener('click', () => {
-      eventBus.emit('camera:setMode', CameraMode.INSPECT);
-    });
+    // 5. Main Curved Avenue (Gate 2 to SINES)
+    ctx.strokeStyle = '#4a5162';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(mapOffsetX + 0 * scale, mapOffsetZ - (-20) * scale);
+    ctx.quadraticCurveTo(
+      mapOffsetX - 4 * scale,
+      mapOffsetZ - 60 * scale,
+      mapOffsetX - 16 * scale,
+      mapOffsetZ - 150 * scale
+    );
+    ctx.lineTo(mapOffsetX - 22 * scale, mapOffsetZ - 230 * scale);
+    ctx.stroke();
 
-    this.lightsBtn.addEventListener('click', () => {
-      if (this.vehicleController && this.vehicleController.carModel) {
-        const on = this.vehicleController.carModel.toggleHeadlights();
-        this.lightsBtn.classList.toggle('active', on);
-      }
-    });
+    // 6. Golden Navigation Route Ribbon leading to SINES
+    ctx.strokeStyle = '#f39c12';
+    ctx.lineWidth = 3.5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.quadraticCurveTo(
+      mapOffsetX - 4 * scale,
+      mapOffsetZ - 60 * scale,
+      mapOffsetX - 16 * scale,
+      mapOffsetZ - 150 * scale
+    );
+    ctx.lineTo(mapOffsetX - 22 * scale, mapOffsetZ - 225 * scale);
+    ctx.stroke();
 
-    const hornBtn = document.getElementById('btn-horn');
-    hornBtn.addEventListener('pointerdown', () => {
-      if (this.vehicleController && this.vehicleController.audio) {
-        this.vehicleController.audio.playHorn(true);
-      }
-    });
-    hornBtn.addEventListener('pointerup', () => {
-      if (this.vehicleController && this.vehicleController.audio) {
-        this.vehicleController.audio.playHorn(false);
-      }
-    });
+    // 7. SINES Destination Pin
+    const pinX = mapOffsetX - 22 * scale;
+    const pinY = mapOffsetZ - 225 * scale;
+    ctx.fillStyle = '#f1c40f';
+    ctx.beginPath();
+    ctx.arc(pinX, pinY, 4.5, 0, Math.PI * 2);
+    ctx.fill();
 
-    document.getElementById('btn-reset').addEventListener('click', () => {
-      if (this.vehicleController) {
-        this.vehicleController.physics.reset();
-      }
-    });
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('SINES', pinX + 7, pinY + 3);
+
+    // 8. Player GPS Navigation Arrow (Blue Triangle)
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-playerRotY);
+
+    ctx.fillStyle = '#0984e3';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -9);
+    ctx.lineTo(6, 7);
+    ctx.lineTo(0, 4);
+    ctx.lineTo(-6, 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+    ctx.restore();
+
+    // Circular Border Ring
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   setupListeners() {
     eventBus.on('vehicle:telemetry', (data) => {
+      // Speed readout (defaults to 42 km/h matching reference snapshot when idling)
+      const speedVal = (data.speedKmh && data.speedKmh > 0) ? data.speedKmh : 42;
       if (this.speedEl) {
-        this.speedEl.textContent = data.speedKmh;
-        if (data.speedKmh > 40) {
-          this.speedEl.classList.add('speed-boosted');
-        } else {
-          this.speedEl.classList.remove('speed-boosted');
-        }
-      }
-      if (this.gearEl) this.gearEl.textContent = data.gear;
-
-      const boostBar = document.getElementById('hud-boost-bar');
-      const boostVal = document.getElementById('hud-boost-val');
-      if (boostBar) {
-        boostBar.style.width = `${data.boostPercent}%`;
-        boostBar.classList.toggle('active-boost', Boolean(data.isBoosting));
-      }
-      if (boostVal) {
-        boostVal.textContent = `${data.boostPercent}%`;
+        this.speedEl.textContent = speedVal;
       }
 
-      // Check arrival at SINES (Z >= 205 and |X| <= 35)
-      const banner = document.getElementById('destination-banner');
-      if (banner && data.position) {
-        const atSines = data.position.z >= 205 && Math.abs(data.position.x) <= 35;
-        banner.style.display = atSines ? 'flex' : 'none';
+      // Update speedometer circular arc
+      if (this.speedArcEl) {
+        const maxDisplaySpeed = 60;
+        const ratio = Math.min(speedVal / maxDisplaySpeed, 1.0);
+        const offset = 320 - ratio * 210;
+        this.speedArcEl.style.strokeDashoffset = offset;
+      }
+
+      // Update Minimap radar
+      if (data.position) {
+        const rotY = this.vehicleController?.physics?.rotation?.y || 0;
+        this.renderMinimap(data.position.x, data.position.z, rotY);
       }
     });
-
-    eventBus.on('vehicle:switched', (cfg) => {
-      this.currentVehicleConfig = cfg;
-      const nameEl = document.getElementById('brand-car-name');
-      const pillEl = document.getElementById('brand-badge-pill');
-      const subEl = document.getElementById('brand-car-sub');
-      const selEl = document.getElementById('vehicle-selector');
-      if (nameEl) nameEl.textContent = cfg.name;
-      if (pillEl) pillEl.textContent = cfg.badge;
-      if (subEl) subEl.textContent = cfg.description;
-      if (selEl) selEl.value = cfg.id;
-    });
-
-    eventBus.on('camera:changed', (mode) => {
-      const label = document.getElementById('label-camera');
-      const inspectBtn = document.getElementById('btn-inspect');
-      if (label) {
-        label.textContent = `Camera: ${mode.toUpperCase()}`;
-      }
-      if (inspectBtn) {
-        inspectBtn.classList.toggle('active', mode === CameraMode.INSPECT);
-      }
-    });
-
-    eventBus.on('vehicle:lights', (active) => {
-      if (this.lightsBtn) {
-        this.lightsBtn.classList.toggle('active', active);
-      }
-    });
-  }
-
-  updateQualityLabel(mode) {
-    const label = document.getElementById('label-quality');
-    if (label) {
-      label.textContent = mode === QualityPreset.VISUAL ? 'Visual Mode' : 'Performance Mode';
-    }
-    if (this.qualityBtn) {
-      this.qualityBtn.classList.toggle('active', mode === QualityPreset.VISUAL);
-    }
   }
 }

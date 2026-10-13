@@ -17,11 +17,11 @@ export class CameraManager {
     this.modes = [CameraMode.CHASE, CameraMode.INSPECT, CameraMode.HOOD];
     this.modeIndex = 0;
 
-    // Chase Camera parameters
+    // Chase Camera parameters calibrated to reference perspective
     this.chaseDistance = 5.2;
-    this.chaseHeight = 2.4;
-    this.currentPosition = new THREE.Vector3(0, 5, -8);
-    this.currentLookAt = new THREE.Vector3(0, 1, 0);
+    this.chaseHeight = 1.62;
+    this.currentPosition = new THREE.Vector3(-2.2, 1.62, -10.2);
+    this.currentLookAt = new THREE.Vector3(-2.2, 0.92, 6.0);
 
     // Orbit / Inspect Camera parameters
     this.orbitRadius = 4.6;
@@ -109,8 +109,8 @@ export class CameraManager {
     if (this.mode === CameraMode.CHASE) {
       // Dynamic chase camera with speed offset
       const speedFactor = Math.min(Math.abs(carSpeed) / 30, 1.0);
-      const dynamicDist = this.chaseDistance + speedFactor * 1.5;
-      const dynamicHeight = this.chaseHeight + speedFactor * 0.4;
+      const dynamicDist = this.chaseDistance + speedFactor * 0.8;
+      const dynamicHeight = this.chaseHeight + speedFactor * 0.2;
 
       // Position behind car
       // In car space, forward is +Z, rear is -Z
@@ -123,15 +123,15 @@ export class CameraManager {
       const idealPosition = carPos.clone().add(idealOffset);
 
       // Smooth lag dampening
-      const lerpSpeed = 6.0 * dt;
+      const lerpSpeed = 7.5 * dt;
       this.currentPosition.lerp(idealPosition, THREE.MathUtils.clamp(lerpSpeed, 0, 1));
       this.camera.position.copy(this.currentPosition);
 
-      // Look slightly ahead of car
-      const lookAheadDist = 2.5 + speedFactor * 2.0;
+      // Look down the road ahead over the car roof
+      const lookAheadDist = 5.5 + speedFactor * 1.5;
       const idealLookAt = carPos.clone().add(new THREE.Vector3(
         Math.sin(carRotY) * lookAheadDist,
-        0.8,
+        0.95,
         Math.cos(carRotY) * lookAheadDist
       ));
 

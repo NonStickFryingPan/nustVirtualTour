@@ -40,10 +40,10 @@ class GameApp {
     // 1. Scene
     this.scene = new THREE.Scene();
 
-    // 2. Camera
-    const fov = 60;
+    // 2. Camera (Cinematic 56° FOV matching reference)
+    const fov = 56;
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 500);
+    this.camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 800);
 
     // 3. Renderer
     this.renderer = new THREE.WebGLRenderer({
@@ -66,18 +66,15 @@ class GameApp {
     // 6. World & Test Track (Gate 2 & Grounds)
     this.track = new TestTrack(this.scene);
 
-    // 7. Initial Vehicle (Default: Suzuki Alto 3D Textured from low_poly.glb)
-    const initialConfig = VEHICLE_CATALOG[0];
-    this.currentVehicleConfig = initialConfig;
-    this.currentModel = new GLTFVehicleModel(initialConfig);
-    this.vehicleCache.set(initialConfig.id, this.currentModel);
+    // 7. Dedicated Authentic White Suzuki Alto (HA36S)
+    this.altoModel = new AltoModel();
+    this.currentModel = this.altoModel;
     this.scene.add(this.currentModel.group);
 
     // 8. Vehicle Physics & Audio
     this.physics = new VehiclePhysics(this.currentModel);
-    this.physics.applyHandling(initialConfig.handling);
-    // Spawn under Gate 2 facing +Z (forward towards SINES)
-    this.physics.setSpawn(0, 0, -12, 0);
+    // Spawn centered in driving lane ahead of Gate 2 facing +Z towards SINES
+    this.physics.setSpawn(-2.2, 0, -5, 0);
 
     this.audio = new VehicleAudio();
 
@@ -88,50 +85,13 @@ class GameApp {
     this.cameraManager = new CameraManager(this.camera, this.renderer.domElement, this.physics);
 
     // 11. HUD Overlay
-    this.hud = new HUD(this.qualityManager, this.controller, initialConfig);
-
-    // 12. Listen for vehicle switches
-    eventBus.on('vehicle:select', (vehicleId) => {
-      this.switchVehicle(vehicleId);
-    });
+    this.hud = new HUD(this.qualityManager, this.controller);
 
     // Window Resize
     window.addEventListener('resize', () => this.onWindowResize());
 
     // Start loop
     this.animate();
-  }
-
-  async switchVehicle(vehicleId) {
-    const config = VEHICLE_CATALOG.find((v) => v.id === vehicleId);
-    if (!config || config.id === this.currentVehicleConfig?.id) return;
-
-    let nextModel;
-    if (this.vehicleCache.has(config.id)) {
-      nextModel = this.vehicleCache.get(config.id);
-    } else {
-      if (config.type === 'gltf') {
-        nextModel = new GLTFVehicleModel(config);
-        await nextModel.loadPromise;
-      } else {
-        nextModel = new AltoModel();
-      }
-      this.vehicleCache.set(config.id, nextModel);
-    }
-
-    if (this.currentModel && this.currentModel.group) {
-      this.scene.remove(this.currentModel.group);
-    }
-
-    this.currentVehicleConfig = config;
-    this.currentModel = nextModel;
-    this.scene.add(this.currentModel.group);
-
-    this.physics.setModel(this.currentModel);
-    this.physics.applyHandling(config.handling);
-    this.controller.setModel(this.currentModel);
-
-    eventBus.emit('vehicle:switched', config);
   }
 
   onWindowResize() {

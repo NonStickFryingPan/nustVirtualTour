@@ -1,11 +1,10 @@
-/* HUD & UI Styling for NUST Virtual Tour */
+/* HUD Styles matching NUST Reference Interface */
 :root {
-  --primary-accent: #ff9f43;
-  --secondary-accent: #ee5253;
-  --glass-bg: rgba(22, 24, 29, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.12);
   --text-main: #f5f6fa;
   --text-muted: #a4b0be;
+  --accent-gold: #f39c12;
+  --glass-bg: rgba(20, 24, 32, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.15);
 }
 
 * {
@@ -45,393 +44,170 @@ body, html {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 20px;
+  padding: 24px 28px;
 }
 
-/* Header & Status Bar */
-.hud-header {
+/* ========================================================
+   TOP LEFT: MISSION / OBJECTIVE PILL
+   ======================================================== */
+.hud-top-left {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
   pointer-events: auto;
 }
 
-.brand-badge {
+.mission-pill {
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--glass-border);
-  padding: 12px 18px;
+  padding: 10px 18px;
   border-radius: 12px;
   display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.mission-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mission-text {
+  display: flex;
   flex-direction: column;
-  gap: 4px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  gap: 2px;
 }
 
-.brand-title {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.brand-title span.badge-pill {
-  background: linear-gradient(135deg, #e67e22, #d35400);
-  font-size: 11px;
-  padding: 2px 7px;
-  border-radius: 6px;
+.mission-title {
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #ffffff;
 }
 
-.brand-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
+.mission-subtitle {
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 500;
+  color: #a4b0be;
 }
 
-/* Control Pills / Quality & Camera Switchers */
-.header-actions {
+/* ========================================================
+   BOTTOM ROW: MINIMAP & SPEEDOMETER
+   ======================================================== */
+.hud-bottom-row {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.vehicle-select-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.hud-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  color: var(--text-main);
-  padding: 10px 34px 10px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  outline: none;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ff9f43' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-}
-
-.hud-select:hover {
-  background-color: rgba(45, 52, 54, 0.85);
-  border-color: var(--primary-accent);
-}
-
-.hud-select option {
-  background: #1e2126;
-  color: #fff;
-  padding: 8px;
-}
-
-.hud-btn {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  color: var(--text-main);
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-}
-
-.hud-btn:hover {
-  background: rgba(45, 52, 54, 0.85);
-  border-color: var(--primary-accent);
-  transform: translateY(-1px);
-}
-
-.hud-btn:active {
-  transform: translateY(1px);
-}
-
-.hud-btn.active {
-  background: linear-gradient(135deg, #ff9f43, #ee5253);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 4px 18px rgba(238, 82, 83, 0.45);
-}
-
-/* Speedometer & Driving Telemetry (Bottom Right) */
-.hud-telemetry {
-  align-self: flex-end;
-  display: flex;
+  justify-content: space-between;
   align-items: flex-end;
-  gap: 20px;
+  width: 100%;
   pointer-events: auto;
 }
 
-.gauge-cluster {
-  background: var(--glass-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--glass-border);
-  padding: 18px 24px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+/* Bottom Left: Circular Minimap */
+.minimap-wrapper {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
-.speed-display {
+#minimap-canvas {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  display: block;
+}
+
+.minimap-compass-n {
+  position: absolute;
+  bottom: 8px;
+  left: 14px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Bottom Right: Circular Speedometer */
+.speedo-cluster {
+  position: relative;
+  width: 160px;
+  height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
-.speed-number {
-  font-size: 48px;
+.speedo-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 160px;
+  height: 160px;
+  filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.5));
+}
+
+#speedo-active-arc {
+  transition: stroke-dashoffset 0.1s ease-out;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+}
+
+.speedo-digital {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -10px;
+}
+
+.speedo-value {
+  font-size: 44px;
   font-weight: 900;
-  font-variant-numeric: tabular-nums;
   line-height: 1;
-  background: linear-gradient(180deg, #ffffff, #dfe4ea);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  transition: all 0.2s ease;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
-.speed-number.speed-boosted {
-  background: linear-gradient(180deg, #00d2d3, #ff9f43);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 10px rgba(0, 210, 211, 0.6));
-  transform: scale(1.08);
-}
-
-.speed-unit {
+.speedo-unit {
   font-size: 12px;
   font-weight: 700;
-  color: var(--primary-accent);
-  letter-spacing: 1.5px;
-  margin-top: 4px;
-}
-
-.speed-limit {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  letter-spacing: 0.5px;
   margin-top: 2px;
+  opacity: 0.9;
 }
 
-.gear-display {
+/* Fuel Gauge underneath speedo */
+.fuel-cluster {
+  position: absolute;
+  bottom: 14px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0 20px;
+  gap: 8px;
 }
 
-.gear-indicator {
-  font-size: 38px;
-  font-weight: 900;
-  color: #ff9f43;
-  line-height: 1;
+.fuel-icon {
+  opacity: 0.9;
 }
 
-.gear-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 1px;
-  margin-top: 6px;
-}
-
-/* Nitro Boost Display */
-.boost-display {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-width: 100px;
-  gap: 5px;
-}
-
-.boost-meta {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-
-.boost-title {
-  color: #00d2d3;
-}
-
-.boost-val {
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-}
-
-.boost-bar-bg {
-  width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
+.fuel-bar-track {
+  width: 44px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
   overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-.boost-bar-fill {
+.fuel-bar-fill {
+  width: 78%;
   height: 100%;
-  background: linear-gradient(90deg, #0abde3, #00d2d3);
-  border-radius: 4px;
-  transition: width 0.08s linear;
-}
-
-.boost-bar-fill.active-boost {
-  background: linear-gradient(90deg, #ff9f43, #ee5253);
-  box-shadow: 0 0 12px rgba(238, 82, 83, 0.85);
-  animation: boostGlow 0.4s infinite alternate;
-}
-
-@keyframes boostGlow {
-  from { opacity: 0.85; }
-  to { opacity: 1.0; }
-}
-
-.boost-hint {
-  font-size: 9px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.6px;
-}
-
-/* Quick Controls Legend (Bottom Left) */
-.controls-legend {
-  background: var(--glass-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--glass-border);
-  padding: 14px 18px;
-  border-radius: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: auto;
-  max-width: 320px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-.legend-title {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--primary-accent);
-  display: flex;
-  justify-content: space-between;
-}
-
-.legend-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 12px;
-  font-size: 12px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #ced6e0;
-}
-
-.key-cap {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 2px 7px;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  min-width: 20px;
-  text-align: center;
-}
-
-/* Mobile Virtual Joystick & Touch Pad */
-.touch-controls {
-  display: none; /* activated on mobile or touch */
-  pointer-events: auto;
-  gap: 16px;
-}
-
-@media (max-width: 768px), (pointer: coarse) {
-  .touch-controls {
-    display: flex;
-  }
-  .controls-legend {
-    display: none;
-  }
-}
-
-/* Destination Arrival Notification */
-.destination-banner {
-  align-self: center;
-  background: rgba(15, 28, 46, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1.5px solid #d4af37;
-  padding: 14px 28px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(212, 175, 55, 0.35);
-  animation: bannerPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  pointer-events: auto;
-}
-
-@keyframes bannerPop {
-  0% { transform: translateY(-20px) scale(0.92); opacity: 0; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
-}
-
-.dest-icon {
-  font-size: 28px;
-}
-
-.dest-text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.dest-title {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: #ffbe76;
-}
-
-.dest-sub {
-  font-size: 12px;
-  font-weight: 600;
-  color: #f5f6fa;
+  background: #ffffff;
+  border-radius: 3px;
 }

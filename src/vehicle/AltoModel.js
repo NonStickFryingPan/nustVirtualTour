@@ -43,40 +43,40 @@ export class AltoModel {
   }
 
   createMaterials() {
-    // Alpine White automotive body paint with realistic clearcoat reflection
+    // Pure Alpine White automotive paint matching reference photo
     const bodyPaint = new THREE.MeshStandardMaterial({
-      color: 0xf6f8fc,
-      roughness: 0.20,
-      metalness: 0.10,
+      color: 0xffffff,
+      roughness: 0.18,
+      metalness: 0.06,
       side: THREE.DoubleSide,
       name: 'AltoBodyWhite'
     });
 
     // Dark trim / unpainted plastic / underbody
     const blackTrim = new THREE.MeshStandardMaterial({
-      color: 0x1c1e22,
-      roughness: 0.70,
-      metalness: 0.15,
+      color: 0x18191c,
+      roughness: 0.75,
+      metalness: 0.1,
       side: THREE.DoubleSide,
       name: 'BlackTrim'
     });
 
-    // Chrome accents (Suzuki 'S' emblem, badges, grille slits)
+    // Chrome accents (Suzuki 'S' emblem, ALTO badge)
     const chrome = new THREE.MeshStandardMaterial({
-      color: 0xebf0f8,
-      roughness: 0.10,
+      color: 0xf5f6fa,
+      roughness: 0.08,
       metalness: 0.95,
       side: THREE.DoubleSide,
       name: 'Chrome'
     });
 
-    // Dark tinted glass
+    // Dark tinted rear and side window glass
     const windowGlass = new THREE.MeshStandardMaterial({
-      color: 0x1a1e24,
-      roughness: 0.08,
-      metalness: 0.40,
+      color: 0x1e242d,
+      roughness: 0.06,
+      metalness: 0.35,
       transparent: true,
-      opacity: 0.86,
+      opacity: 0.82,
       side: THREE.DoubleSide,
       name: 'WindowGlass'
     });
@@ -95,8 +95,6 @@ export class AltoModel {
     // Amber turn indicators
     const amberLens = new THREE.MeshStandardMaterial({
       color: 0xf39c12,
-      emissive: 0x000000,
-      emissiveIntensity: 0,
       roughness: 0.25,
       side: THREE.DoubleSide,
       name: 'AmberLens'
@@ -104,37 +102,37 @@ export class AltoModel {
 
     // Bumper-mounted red taillight lens
     const redTailLens = new THREE.MeshStandardMaterial({
-      color: 0xc0392b,
-      emissive: 0x220505,
-      emissiveIntensity: 0.2,
-      roughness: 0.30,
+      color: 0xd63031,
+      emissive: 0x440808,
+      emissiveIntensity: 0.3,
+      roughness: 0.25,
+      metalness: 0.2,
       side: THREE.DoubleSide,
       name: 'RedTailLens'
     });
 
     // High Mount Stop Lamp
     const highBrakeLens = new THREE.MeshStandardMaterial({
-      color: 0xd63031,
-      emissive: 0x220505,
-      emissiveIntensity: 0.2,
-      roughness: 0.25,
+      color: 0xe84118,
+      emissive: 0x660a0a,
+      emissiveIntensity: 0.4,
+      roughness: 0.20,
       side: THREE.DoubleSide,
       name: 'HighBrakeLens'
     });
 
     // White reverse light lens
     const reverseLens = new THREE.MeshStandardMaterial({
-      color: 0xeef2f7,
-      emissive: 0x000000,
-      emissiveIntensity: 0,
-      roughness: 0.25,
+      color: 0xf5f6fa,
+      roughness: 0.20,
+      metalness: 0.3,
       side: THREE.DoubleSide,
       name: 'ReverseLens'
     });
 
     // Tires
     const tireRubber = new THREE.MeshStandardMaterial({
-      color: 0x222326,
+      color: 0x1e2024,
       roughness: 0.85,
       metalness: 0.05,
       name: 'TireRubber'
@@ -142,7 +140,7 @@ export class AltoModel {
 
     // Silver wheel hubcaps
     const wheelSilver = new THREE.MeshStandardMaterial({
-      color: 0xd8dde4,
+      color: 0xdcdde1,
       roughness: 0.25,
       metalness: 0.65,
       name: 'WheelSilver'
@@ -150,7 +148,7 @@ export class AltoModel {
 
     // Steel wheel rim behind hubcap
     const wheelSteel = new THREE.MeshStandardMaterial({
-      color: 0x1e2024,
+      color: 0x141619,
       roughness: 0.65,
       metalness: 0.50,
       name: 'WheelSteel'
@@ -158,15 +156,15 @@ export class AltoModel {
 
     // Interior cabin plastic
     const interiorDark = new THREE.MeshStandardMaterial({
-      color: 0x24262b,
-      roughness: 0.90,
+      color: 0x242830,
+      roughness: 0.85,
       metalness: 0.05,
       name: 'InteriorDark'
     });
 
     // License plate
     const licensePlate = new THREE.MeshStandardMaterial({
-      color: 0x18191c,
+      color: 0x111317,
       roughness: 0.60,
       metalness: 0.10,
       side: THREE.DoubleSide,
@@ -216,6 +214,9 @@ export class AltoModel {
 
     // 4. Ground Contact Shadow
     this.buildGroundShadowPlane();
+
+    // 5. Authentic Rear Tailgate Assembly (Badges, Wiper, Dual-Chamber Taillights, Seats)
+    this.buildAuthenticRearDetails(c);
 
     // Enable shadows on all relevant meshes
     this.chassisGroup.traverse((obj) => {
@@ -279,6 +280,203 @@ export class AltoModel {
         parent.add(mesh);
       }
     }
+  }
+
+  buildAuthenticRearDetails(parent) {
+    const rearGroup = new THREE.Group();
+    rearGroup.name = 'Alto_Authentic_Rear';
+
+    // 1. High-Mount Red Stop Lamp (HMSL) centered above rear window
+    const hmslGeo = new THREE.BoxGeometry(0.24, 0.038, 0.035);
+    const hmslMesh = new THREE.Mesh(hmslGeo, this.materials.highBrakeLens);
+    hmslMesh.position.set(0, 1.442, -1.352);
+    rearGroup.add(hmslMesh);
+
+    // 2. Rear Windshield Rubber Trim Bezel
+    const windowBezelGeo = new THREE.BoxGeometry(1.22, 0.025, 0.025);
+    const windowBezelTop = new THREE.Mesh(windowBezelGeo, this.materials.blackTrim);
+    windowBezelTop.position.set(0, 1.435, -1.350);
+    rearGroup.add(windowBezelTop);
+
+    const windowBezelBottom = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.025, 0.025), this.materials.blackTrim);
+    windowBezelBottom.position.set(0, 0.865, -1.520);
+    rearGroup.add(windowBezelBottom);
+
+    // 3. Black Horizontal Rear Wiper
+    const wiperPivotGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.03, 8);
+    const wiperPivot = new THREE.Mesh(wiperPivotGeo, this.materials.blackTrim);
+    wiperPivot.position.set(0.0, 0.885, -1.528);
+    wiperPivot.rotation.x = Math.PI / 2;
+    rearGroup.add(wiperPivot);
+
+    const wiperArmGeo = new THREE.BoxGeometry(0.28, 0.014, 0.014);
+    const wiperArm = new THREE.Mesh(wiperArmGeo, this.materials.blackTrim);
+    // Extending horizontally across lower rear window
+    wiperArm.position.set(-0.14, 0.888, -1.530);
+    rearGroup.add(wiperArm);
+
+    // 4. Centered Suzuki Chrome 'S' Emblem
+    const emblemCanvas = document.createElement('canvas');
+    emblemCanvas.width = 256;
+    emblemCanvas.height = 256;
+    const ectx = emblemCanvas.getContext('2d');
+    ectx.clearRect(0, 0, 256, 256);
+
+    // Draw sharp metallic Suzuki 'S' emblem
+    ectx.fillStyle = '#ffffff';
+    ectx.beginPath();
+    ectx.moveTo(60, 48);
+    ectx.lineTo(210, 48);
+    ectx.lineTo(170, 96);
+    ectx.lineTo(105, 96);
+    ectx.lineTo(175, 148);
+    ectx.lineTo(196, 208);
+    ectx.lineTo(46, 208);
+    ectx.lineTo(86, 160);
+    ectx.lineTo(151, 160);
+    ectx.lineTo(81, 108);
+    ectx.closePath();
+    ectx.fill();
+
+    const emblemTex = new THREE.CanvasTexture(emblemCanvas);
+    const emblemMat = new THREE.MeshBasicMaterial({
+      map: emblemTex,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    const emblemMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.14), emblemMat);
+    emblemMesh.rotation.y = Math.PI; // Face towards camera (-Z)
+    emblemMesh.position.set(0, 0.76, -1.575);
+    rearGroup.add(emblemMesh);
+
+    // 5. Tailgate Release Button / Keyhole centered beneath emblem
+    const keyholeGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.018, 12);
+    const keyhole = new THREE.Mesh(keyholeGeo, this.materials.blackTrim);
+    keyhole.position.set(0, 0.66, -1.605);
+    keyhole.rotation.x = Math.PI / 2;
+    rearGroup.add(keyhole);
+
+    // 6. Chrome "ALTO" Badge on bottom right of tailgate (Screen Right is world -X)
+    const badgeCanvas = document.createElement('canvas');
+    badgeCanvas.width = 512;
+    badgeCanvas.height = 128;
+    const bctx = badgeCanvas.getContext('2d');
+    bctx.clearRect(0, 0, 512, 128);
+    bctx.fillStyle = '#ffffff';
+    bctx.font = '900 italic 78px "Arial Black", Impact, sans-serif';
+    bctx.textAlign = 'center';
+    bctx.textBaseline = 'middle';
+    bctx.fillText('ALTO', 256, 64);
+
+    const badgeTex = new THREE.CanvasTexture(badgeCanvas);
+    const badgeMat = new THREE.MeshBasicMaterial({
+      map: badgeTex,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    const badgeMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.06), badgeMat);
+    badgeMesh.rotation.y = Math.PI; // Face towards camera (-Z)
+    // Screen right is -X
+    badgeMesh.position.set(-0.42, 0.70, -1.585);
+    rearGroup.add(badgeMesh);
+
+    // 7. Sculpted Rear Bumper Taillight Assemblies (Left & Right)
+    [-0.52, 0.52].forEach((xPos) => {
+      // Outer Red Brake Chamber (further away from center)
+      const outerSign = Math.sign(xPos);
+      const redChamberGeo = new THREE.BoxGeometry(0.16, 0.11, 0.035);
+      const redChamber = new THREE.Mesh(redChamberGeo, this.materials.redTailLens);
+      redChamber.position.set(xPos + outerSign * 0.03, 0.465, -1.636);
+      rearGroup.add(redChamber);
+
+      // Inner Clear/White Reverse Chamber (closer to center)
+      const revChamberGeo = new THREE.BoxGeometry(0.08, 0.11, 0.035);
+      const revChamber = new THREE.Mesh(revChamberGeo, this.materials.reverseLens);
+      revChamber.position.set(xPos - outerSign * 0.06, 0.465, -1.636);
+      rearGroup.add(revChamber);
+
+      // Dark housing bezel framing taillight
+      const bezelGeo = new THREE.BoxGeometry(0.27, 0.125, 0.02);
+      const bezel = new THREE.Mesh(bezelGeo, this.materials.blackTrim);
+      bezel.position.set(xPos, 0.465, -1.63);
+      rearGroup.add(bezel);
+    });
+
+    // 8. Recessed Black License Plate Frame
+    const plateFrameGeo = new THREE.BoxGeometry(0.38, 0.175, 0.03);
+    const plateFrame = new THREE.Mesh(plateFrameGeo, this.materials.blackTrim);
+    plateFrame.position.set(0, 0.45, -1.642);
+    rearGroup.add(plateFrame);
+
+    // Black License Plate inside recess
+    const plateGeo = new THREE.PlaneGeometry(0.34, 0.145);
+    const plateMesh = new THREE.Mesh(plateGeo, this.materials.licensePlate);
+    plateMesh.rotation.y = Math.PI;
+    plateMesh.position.set(0, 0.45, -1.658);
+    rearGroup.add(plateMesh);
+
+    // 9. Lower Bumper Corner Reflectors
+    [-0.64, 0.64].forEach((xPos) => {
+      const refGeo = new THREE.BoxGeometry(0.05, 0.03, 0.015);
+      const refMesh = new THREE.Mesh(refGeo, this.materials.redTailLens);
+      refMesh.position.set(xPos, 0.31, -1.605);
+      rearGroup.add(refMesh);
+    });
+
+    // 10. Angled Roof Antenna
+    const antennaBaseGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.04, 8);
+    const antennaBase = new THREE.Mesh(antennaBaseGeo, this.materials.blackTrim);
+    antennaBase.position.set(0, 1.48, -1.18);
+    rearGroup.add(antennaBase);
+
+    const mastGeo = new THREE.CylinderGeometry(0.007, 0.01, 0.32, 6);
+    const mast = new THREE.Mesh(mastGeo, this.materials.blackTrim);
+    mast.position.set(0, 1.62, -1.28);
+    mast.rotation.x = -0.58; // angled backwards at ~33 degrees
+    rearGroup.add(mast);
+
+    // 11. Side Rearview Mirrors (with white body and reflective mirror glass)
+    [-1, 1].forEach((side) => {
+      const mirrorGroup = new THREE.Group();
+      mirrorGroup.position.set(side * 0.77, 1.02, 0.58);
+
+      // White Cap
+      const capGeo = new THREE.BoxGeometry(0.15, 0.10, 0.12);
+      const cap = new THREE.Mesh(capGeo, this.materials.bodyPaint);
+      cap.position.set(side * 0.03, 0, 0);
+      mirrorGroup.add(cap);
+
+      // Mirror Glass facing backward
+      const glassGeo = new THREE.PlaneGeometry(0.12, 0.08);
+      const glass = new THREE.Mesh(glassGeo, this.materials.chrome);
+      glass.position.set(side * 0.03, 0, -0.061);
+      glass.rotation.y = Math.PI;
+      mirrorGroup.add(glass);
+
+      // Black Stem Mount
+      const stemGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.10, 8);
+      const stem = new THREE.Mesh(stemGeo, this.materials.blackTrim);
+      stem.position.set(-side * 0.05, -0.03, 0);
+      stem.rotation.z = side * (Math.PI / 4);
+      mirrorGroup.add(stem);
+
+      rearGroup.add(mirrorGroup);
+    });
+
+    // 12. Interior Headrests & Seat Backs visible through rear glass
+    [-0.28, 0.28].forEach((xPos) => {
+      const headrestGeo = new THREE.BoxGeometry(0.20, 0.14, 0.09);
+      const headrest = new THREE.Mesh(headrestGeo, this.materials.interiorDark);
+      headrest.position.set(xPos, 1.22, 0.02);
+      rearGroup.add(headrest);
+
+      const seatBackGeo = new THREE.BoxGeometry(0.40, 0.38, 0.11);
+      const seatBack = new THREE.Mesh(seatBackGeo, this.materials.interiorDark);
+      seatBack.position.set(xPos, 0.94, 0.02);
+      rearGroup.add(seatBack);
+    });
+
+    parent.add(rearGroup);
   }
 
   buildHeadlightBeams(parent) {
