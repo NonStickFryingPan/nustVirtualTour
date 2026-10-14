@@ -14,5 +14,9 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+# Screenshots
 *.png
+!references/**
+!car_model/**
+!public/**
 

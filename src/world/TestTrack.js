@@ -526,8 +526,8 @@ export class TestTrack {
       // Screen LEFT light pole (+X side) with hanging NUST banner!
       this.createArchLightPole(cx + 7.8, z, -1, true);
 
-      // Screen RIGHT light pole (-X side)
-      this.createArchLightPole(cx - 7.8, z, 1, false);
+      // Screen RIGHT light pole (-X side) with hanging NUST banner!
+      this.createArchLightPole(cx - 7.8, z, 1, true);
     });
   }
 
@@ -562,8 +562,8 @@ export class TestTrack {
       bannerCanvas.height = 512;
       const bctx = bannerCanvas.getContext('2d');
 
-      // Navy background
-      bctx.fillStyle = '#142032';
+      // Deep purple-navy background matching reference
+      bctx.fillStyle = '#221636';
       bctx.fillRect(0, 0, 256, 512);
 
       // Gold border

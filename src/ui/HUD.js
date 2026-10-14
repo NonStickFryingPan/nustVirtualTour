@@ -33,11 +33,6 @@ export class HUD {
             <div class="mission-subtitle">From Gate 2 to SINES</div>
           </div>
         </div>
-
-        <div class="model-switcher-pill">
-          <button id="btn-model-a" class="model-btn active" title="Press 1">1: Option A (Procedural)</button>
-          <button id="btn-model-b" class="model-btn" title="Press 2">2: Option B (Photo-Textured)</button>
-        </div>
       </div>
 
       <!-- Bottom Layout: Minimap (Left) & Speedometer (Right) -->
@@ -88,13 +83,6 @@ export class HUD {
       this.minimapCtx = this.minimapCanvas.getContext('2d');
     }
 
-    // Model Switcher buttons
-    const btnA = document.getElementById('btn-model-a');
-    const btnB = document.getElementById('btn-model-b');
-    if (btnA && btnB) {
-      btnA.addEventListener('click', () => eventBus.emit('vehicle:switchModel', 'procedural'));
-      btnB.addEventListener('click', () => eventBus.emit('vehicle:switchModel', 'phototextured'));
-    }
   }
 
   initMinimap() {

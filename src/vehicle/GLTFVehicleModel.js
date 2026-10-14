@@ -253,7 +253,7 @@ export class GLTFVehicleModel {
   }
 
   spinWheels(distanceTraveled) {
-    const deltaAngle = distanceTraveled / 0.366;
+    const deltaAngle = distanceTraveled / 0.285;
     for (const [key, w] of Object.entries(this.wheels)) {
       if (w?.spinner) {
         this.wheelSpins[key] = (this.wheelSpins[key] || 0) + deltaAngle;

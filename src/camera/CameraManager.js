@@ -17,11 +17,11 @@ export class CameraManager {
     this.modes = [CameraMode.CHASE, CameraMode.INSPECT, CameraMode.HOOD];
     this.modeIndex = 0;
 
-    // Chase Camera parameters calibrated to reference perspective
-    this.chaseDistance = 5.2;
-    this.chaseHeight = 1.62;
-    this.currentPosition = new THREE.Vector3(-2.2, 1.62, -10.2);
-    this.currentLookAt = new THREE.Vector3(-2.2, 0.92, 6.0);
+    // Chase Camera parameters calibrated to reference perspective (media_1791967568086_09067d95.jpg)
+    this.chaseDistance = 4.25;
+    this.chaseHeight = 1.46;
+    this.currentPosition = new THREE.Vector3(-1.4, 1.46, -9.25);
+    this.currentLookAt = new THREE.Vector3(-1.4, 0.90, 5.0);
 
     // Orbit / Inspect Camera parameters
     this.orbitRadius = 4.6;

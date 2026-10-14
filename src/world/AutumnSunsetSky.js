@@ -118,11 +118,42 @@ export class AutumnSunsetSky {
     flareMesh.position.set(-28, 19, 43.8);
     sunGroup.add(flareMesh);
 
-    // 2. Volumetric God Rays (Light shafts radiating down-left across road)
+    // 2. Volumetric God Rays (Soft feathered light shafts radiating down-left across road)
+    function createFeatheredRayTexture() {
+      const c = document.createElement('canvas');
+      c.width = 128;
+      c.height = 512;
+      const g = c.getContext('2d');
+
+      // Vertical falloff (bright at top -> fading out down the road)
+      const vGrad = g.createLinearGradient(0, 0, 0, 512);
+      vGrad.addColorStop(0.00, 'rgba(255, 240, 180, 0.85)');
+      vGrad.addColorStop(0.25, 'rgba(255, 215, 140, 0.65)');
+      vGrad.addColorStop(0.60, 'rgba(255, 180, 80, 0.25)');
+      vGrad.addColorStop(1.00, 'rgba(255, 140, 50, 0.00)');
+      g.fillStyle = vGrad;
+      g.fillRect(0, 0, 128, 512);
+
+      // Horizontal feathering so rays don't have harsh polygonal edges
+      const hGrad = g.createLinearGradient(0, 0, 128, 0);
+      hGrad.addColorStop(0.00, 'rgba(0, 0, 0, 1.0)');
+      hGrad.addColorStop(0.35, 'rgba(0, 0, 0, 0.0)');
+      hGrad.addColorStop(0.65, 'rgba(0, 0, 0, 0.0)');
+      hGrad.addColorStop(1.00, 'rgba(0, 0, 0, 1.0)');
+      g.globalCompositeOperation = 'destination-out';
+      g.fillStyle = hGrad;
+      g.fillRect(0, 0, 128, 512);
+
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
+    }
+
+    const rayTex = createFeatheredRayTexture();
     const rayMat = new THREE.MeshBasicMaterial({
+      map: rayTex,
       color: 0xffeaa7,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.16,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide,
       depthWrite: false
@@ -130,11 +161,11 @@ export class AutumnSunsetSky {
 
     const rayConfigs = [
       // Fan of distinct diagonal light shafts beaming from sun down-left across road
-      { x: -22, y: 15.0, z: 32, rotZ: 0.52, rotY: -0.30, w: 9, l: 34, op: 0.24 },
-      { x: -16, y: 11.5, z: 24, rotZ: 0.48, rotY: -0.35, w: 12, l: 38, op: 0.26 },
-      { x: -11, y: 9.0, z: 16, rotZ: 0.54, rotY: -0.28, w: 8, l: 30, op: 0.20 },
-      { x: -24, y: 16.0, z: 38, rotZ: 0.44, rotY: -0.36, w: 14, l: 42, op: 0.22 },
-      { x: -18, y: 12.5, z: 28, rotZ: 0.50, rotY: -0.32, w: 10, l: 36, op: 0.21 }
+      { x: -22, y: 15.0, z: 32, rotZ: 0.52, rotY: -0.30, w: 9, l: 34, op: 0.18 },
+      { x: -16, y: 11.5, z: 24, rotZ: 0.48, rotY: -0.35, w: 12, l: 38, op: 0.20 },
+      { x: -11, y: 9.0, z: 16, rotZ: 0.54, rotY: -0.28, w: 8, l: 30, op: 0.15 },
+      { x: -24, y: 16.0, z: 38, rotZ: 0.44, rotY: -0.36, w: 14, l: 42, op: 0.16 },
+      { x: -18, y: 12.5, z: 28, rotZ: 0.50, rotY: -0.32, w: 10, l: 36, op: 0.16 }
     ];
 
     rayConfigs.forEach((cfg) => {

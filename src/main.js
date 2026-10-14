@@ -23,11 +23,8 @@ class GameApp {
     this.sky = null;
     this.track = null;
 
-    // Both Models for the scene
-    this.modelA = null; // Option A: Procedural Rigged Alto
-    this.modelB = null; // Option B: Photo-Textured Rigged Alto
-    this.activeModelType = 'procedural';
-    this.currentModel = null;
+    // Player White Suzuki Alto HA36S Model
+    this.carModel = null;
 
     this.physics = null;
     this.audio = null;
@@ -68,37 +65,25 @@ class GameApp {
     // 6. World & Test Track (Gate 2 & Grounds)
     this.track = new TestTrack(this.scene);
 
-    // 7. Instantiate BOTH Models into the scene!
-    // Model 1: Option A (Procedural Rigged Alto from alto_glb_exporter.html)
-    this.modelA = new ProceduralAltoModel();
-    this.scene.add(this.modelA.group);
-
-    // Model 2: Option B (Photo-Textured Rigged Alto from generate_alto_glb.py)
-    this.modelB = new GLTFVehicleModel({
-      name: 'PhotoTexturedAlto',
-      modelUrl: '/models/suzuki_alto_phototextured.glb',
+    // 7. Instantiate the Single White Rigged Suzuki Alto HA36S (matching reference)
+    this.carModel = new GLTFVehicleModel({
+      name: 'SuzukiAltoWhite',
+      modelUrl: '/models/suzuki_alto_final.glb',
       scale: 1.0,
       yOffset: 0,
       rotationY: 0
     });
-    this.scene.add(this.modelB.group);
-
-    // Start with Model A as the primary player vehicle in the right lane
-    this.currentModel = this.modelA;
+    this.scene.add(this.carModel.group);
 
     // 8. Vehicle Physics & Audio
-    this.physics = new VehiclePhysics(this.currentModel);
-    // Player car spawns in lane (X = -1.2)
-    this.physics.setSpawn(-1.2, 0, -5, 0);
-
-    // Position Model B alongside in the parallel lane (X = +1.3)
-    this.modelB.group.position.set(1.3, 0, -5);
-    this.modelB.group.rotation.set(0, 0, 0);
+    this.physics = new VehiclePhysics(this.carModel);
+    // Player car spawns in center-right driving lane (X = -1.4m, Z = -5m, heading along +Z)
+    this.physics.setSpawn(-1.4, 0, -5, 0);
 
     this.audio = new VehicleAudio();
 
     // 9. Controller (Keyboard + Touch + State Machine)
-    this.controller = new VehicleController(this.physics, this.currentModel, this.audio);
+    this.controller = new VehicleController(this.physics, this.carModel, this.audio);
 
     // 10. Camera Manager (Chase / Inspect 360 / Hood)
     this.cameraManager = new CameraManager(this.camera, this.renderer.domElement, this.physics);
@@ -106,58 +91,11 @@ class GameApp {
     // 11. HUD Overlay
     this.hud = new HUD(this.qualityManager, this.controller);
 
-    // Model switching (Keys 1 & 2 + UI buttons)
-    this.setupModelSwitching();
-
     // Window Resize
     window.addEventListener('resize', () => this.onWindowResize());
 
     // Start loop
     this.animate();
-  }
-
-  setupModelSwitching() {
-    eventBus.on('vehicle:switchModel', (type) => {
-      this.switchVehicle(type);
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === '1') this.switchVehicle('procedural');
-      if (e.key === '2') this.switchVehicle('phototextured');
-    });
-  }
-
-  switchVehicle(type) {
-    if (type === this.activeModelType) return;
-    this.activeModelType = type;
-
-    const currentPos = this.physics.position.clone();
-    const currentRotY = this.physics.rotation.y;
-
-    if (type === 'procedural') {
-      // Park Model B in parallel lane
-      this.modelB.group.position.set(1.3, 0, currentPos.z);
-      this.modelB.group.rotation.set(0, currentRotY, 0);
-
-      this.currentModel = this.modelA;
-      this.physics.setModel(this.modelA);
-      this.physics.position.set(-1.2, 0, currentPos.z);
-      this.physics.rotation.y = currentRotY;
-      this.physics.applyTransform();
-    } else {
-      // Park Model A in parallel lane
-      this.modelA.group.position.set(-1.2, 0, currentPos.z);
-      this.modelA.group.rotation.set(0, currentRotY, 0);
-
-      this.currentModel = this.modelB;
-      this.physics.setModel(this.modelB);
-      this.physics.position.set(1.3, 0, currentPos.z);
-      this.physics.rotation.y = currentRotY;
-      this.physics.applyTransform();
-    }
-
-    this.controller.carModel = this.currentModel;
-    eventBus.emit('vehicle:modelSwitched', type);
   }
 
   onWindowResize() {
