@@ -87,7 +87,7 @@ export class GLTFVehicleModel {
   }
 
   detectAndSetupWheels(scene) {
-    // Look for wheel nodes
+    // Look for wheel nodes (supports Wheel_FL, Wheel_FR, Wheel_RL, Wheel_RR, and generic names)
     const wheelNodes = {
       fl: null,
       fr: null,
@@ -97,16 +97,19 @@ export class GLTFVehicleModel {
 
     scene.traverse((child) => {
       const name = child.name.toLowerCase();
-      if (name.includes('front') && (name.includes('left') || name.includes('-l') || name.includes('_l'))) {
+      if (name === 'wheel_fl' || (name.includes('front') && (name.includes('left') || name.includes('-l') || name.includes('_l')))) {
         wheelNodes.fl = child;
-      } else if (name.includes('front') && (name.includes('right') || name.includes('-r') || name.includes('_r'))) {
+      } else if (name === 'wheel_fr' || (name.includes('front') && (name.includes('right') || name.includes('-r') || name.includes('_r')))) {
         wheelNodes.fr = child;
-      } else if ((name.includes('back') || name.includes('rear')) && (name.includes('left') || name.includes('-l') || name.includes('_l'))) {
+      } else if (name === 'wheel_rl' || ((name.includes('back') || name.includes('rear')) && (name.includes('left') || name.includes('-l') || name.includes('_l')))) {
         wheelNodes.rl = child;
-      } else if ((name.includes('back') || name.includes('rear')) && (name.includes('right') || name.includes('-r') || name.includes('_r'))) {
+      } else if (name === 'wheel_rr' || ((name.includes('back') || name.includes('rear')) && (name.includes('right') || name.includes('-r') || name.includes('_r')))) {
         wheelNodes.rr = child;
       }
     });
+
+    this.wheelSpins = { fl: 0, fr: 0, rl: 0, rr: 0 };
+    this.steeringAngle = 0;
 
     for (const [key, node] of Object.entries(wheelNodes)) {
       if (node) {
@@ -240,15 +243,22 @@ export class GLTFVehicleModel {
   }
 
   setSteeringAngle(angle) {
-    if (this.wheels.fl?.pivot) this.wheels.fl.pivot.rotation.y = angle;
-    if (this.wheels.fr?.pivot) this.wheels.fr.pivot.rotation.y = angle;
+    this.steeringAngle = angle;
+    if (this.wheels.fl?.pivot) {
+      this.wheels.fl.pivot.rotation.set(this.wheelSpins.fl || 0, angle, 0, 'YXZ');
+    }
+    if (this.wheels.fr?.pivot) {
+      this.wheels.fr.pivot.rotation.set(this.wheelSpins.fr || 0, angle, 0, 'YXZ');
+    }
   }
 
   spinWheels(distanceTraveled) {
-    const deltaAngle = distanceTraveled / 0.28;
-    for (const w of Object.values(this.wheels)) {
+    const deltaAngle = distanceTraveled / 0.366;
+    for (const [key, w] of Object.entries(this.wheels)) {
       if (w?.spinner) {
-        w.spinner.rotation.x += deltaAngle;
+        this.wheelSpins[key] = (this.wheelSpins[key] || 0) + deltaAngle;
+        const steer = w.isFront ? this.steeringAngle : 0;
+        w.spinner.rotation.set(this.wheelSpins[key], steer, 0, 'YXZ');
       }
     }
   }

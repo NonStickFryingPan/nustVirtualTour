@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Suzuki Alto 3D Rigged .GLB Generator</title>
+  <style>
+    body { margin: 0; background: #14171d; color: #f0f4f8; font-family: system-ui, sans-serif; overflow: hidden; }
+    #ui {
+      position: absolute; top: 16px; left: 16px; width: 310px;
+      background: rgba(24, 28, 36, 0.92); backdrop-filter: blur(8px);
+      padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+    h2 { margin: 0 0 6px; font-size: 17px; }
+    p { margin: 0 0 14px; font-size: 12.5px; color: #9aa5b4; }
+    .ctrl { margin-bottom: 10px; font-size: 13px; }
+    .ctrl label { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    input[type="range"] { width: 100%; accent-color: #3b82f6; }
+    button {
+      width: 100%; padding: 11px; margin-top: 8px; border: none; border-radius: 8px;
+      background: #2563eb; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="ui">
+    <h2>Suzuki Alto (.GLB Builder)</h2>
+    <p>Rigged with 4 independent wheel pivot nodes (<code>Wheel_FL</code>, <code>Wheel_FR</code>, <code>Wheel_RL</code>, <code>Wheel_RR</code>).</p>
+    <div class="ctrl">
+      <label><span>Wheel_FL Spin Speed</span><span id="vFL">2.0</span></label>
+      <input id="sFL" type="range" min="-10" max="10" step="0.5" value="2" />
+    </div>
+    <div class="ctrl">
+      <label><span>Wheel_FR Spin Speed</span><span id="vFR">2.0</span></label>
+      <input id="sFR" type="range" min="-10" max="10" step="0.5" value="2" />
+    </div>
+    <div class="ctrl">
+      <label><span>Wheel_RL Spin Speed</span><span id="vRL">2.0</span></label>
+      <input id="sRL" type="range" min="-10" max="10" step="0.5" value="2" />
+    </div>
+    <div class="ctrl">
+      <label><span>Wheel_RR Spin Speed</span><span id="vRR">2.0</span></label>
+      <input id="sRR" type="range" min="-10" max="10" step="0.5" value="2" />
+    </div>
+    <div class="ctrl">
+      <label><span>Front Steering Angle (°)</span><span id="vSteer">0°</span></label>
+      <input id="sSteer" type="range" min="-32" max="32" step="1" value="0" />
+    </div>
+    <button id="downloadBtn">Download suzuki_alto_rigged.glb</button>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x14171d);
+
+    const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(3.4, 1.7, 3.8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.65, 0);
+    controls.update();
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    dirLight.position.set(5, 8, 6);
+    scene.add(dirLight);
+    const backLight = new THREE.DirectionalLight(0xdbeafe, 0.7);
+    backLight.position.set(-5, 4, -6);
+    scene.add(backLight);
+
+    const grid = new THREE.GridHelper(10, 20, 0x334155, 0x1e293b);
+    scene.add(grid);
+
+    // Exportable Root Node
+    const root = new THREE.Group();
+    root.name = 'Suzuki_Alto_Root';
+    scene.add(root);
+
+    // Materials
+    const paintMat = new THREE.MeshStandardMaterial({ color: 0xf7f8fa, roughness: 0.25, metalness: 0.08, name: 'White_Paint' });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x262a30, roughness: 0.1, metalness: 0.25, name: 'Tinted_Glass' });
+    const darkTrimMat = new THREE.MeshStandardMaterial({ color: 0x181a1f, roughness: 0.7, metalness: 0.1, name: 'Black_Trim' });
+    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.2, metalness: 0.85, name: 'Chrome_Badge' });
+    const silverRimMat = new THREE.MeshStandardMaterial({ color: 0xc8cdd4, roughness: 0.35, metalness: 0.45, name: 'Hubcap_Silver' });
+    const tyreMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.85, metalness: 0.05, name: 'Tyre_Rubber' });
+    const headLightMat = new THREE.MeshStandardMaterial({ color: 0xdbe4f0, roughness: 0.15, metalness: 0.6, name: 'Headlight_Lens' });
+    const amberMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.25, metalness: 0.2, name: 'Turn_Signal' });
+    const tailLightMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.2, metalness: 0.2, name: 'Taillight_Red' });
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0xcfd3d8, roughness: 0.4, metalness: 0.2, name: 'Door_Handle' });
+
+    const carBody = new THREE.Group();
+    carBody.name = 'Car_Body';
+    root.add(carBody);
+
+    // Build accurate Suzuki Alto HA36S side profile lofted across width with tumblehome
+    // Z runs from -1.6975 (rear) to +1.6975 (front)
+    const zSlices = [
+      // [z, yBottom, yBelt, yTop, halfWidthBottom, halfWidthBelt, halfWidthTop]
+      [-1.697, 0.34, 0.76, 0.84, 0.64, 0.68, 0.63], // Rear bumper tip
+      [-1.630, 0.27, 0.88, 1.15, 0.70, 0.72, 0.62], // Rear tailgate lower
+      [-1.500, 0.28, 0.94, 1.44, 0.72, 0.735, 0.54], // Rear window top / spoiler
+      [-1.213, 0.52, 0.93, 1.470, 0.735, 0.738, 0.545], // Rear axle center (arch raised)
+      [-0.850, 0.21, 0.91, 1.475, 0.735, 0.738, 0.55], // Rear door
+      [-0.150, 0.21, 0.89, 1.475, 0.735, 0.738, 0.55], // B-pillar
+      [ 0.550, 0.21, 0.86, 1.455, 0.735, 0.738, 0.54], // A-pillar top / windshield top
+      [ 0.920, 0.21, 0.84, 0.90, 0.735, 0.735, 0.67], // Base of windshield / cowl
+      [ 1.213, 0.52, 0.81, 0.87, 0.735, 0.735, 0.66], // Front axle center (arch raised)
+      [ 1.560, 0.23, 0.72, 0.80, 0.70, 0.70, 0.63], // Front headlight line
+      [ 1.697, 0.26, 0.62, 0.71, 0.62, 0.63, 0.58]  // Front bumper nose
+    ];
+
+    function sampleProfile(z) {
+      for (let i = 0; i < zSlices.length - 1; i++) {
+        const a = zSlices[i], b = zSlices[i + 1];
+        if (z >= a[0] && z <= b[0]) {
+          const t = (z - a[0]) / (b[0] - a[0]);
+          const s = t * t * (3 - 2 * t);
+          return a.map((v, idx) => v + (b[idx] - v) * s);
+        }
+      }
+      return zSlices[zSlices.length - 1];
+    }
+
+    // Generate main body shell with recessed wheel arches
+    const nz = 96, nv = 48;
+    const positions = [];
+    const indices = [];
+    const zMin = -1.697, zMax = 1.697;
+
+    for (let i = 0; i <= nz; i++) {
+      const u = i / nz;
+      const z = zMin + u * (zMax - zMin);
+      const [_, yBotBase, yBelt, yTop, hwBot, hwBelt, hwTop] = sampleProfile(z);
+
+      // Carve circular wheel arches at front (z=1.213) and rear (z=-1.213)
+      let yBot = 0.21;
+      for (const wz of [-1.213, 1.213]) {
+        const dz = z - wz;
+        const rArch = 0.415;
+        if (Math.abs(dz) < rArch) {
+          const archY = 0.366 + Math.sqrt(Math.max(0, rArch * rArch - dz * dz));
+          yBot = Math.max(yBot, archY);
+        }
+      }
+      if (z < -1.55 || z > 1.55) yBot = Math.max(yBot, 0.24);
+
+      for (let j = 0; j <= nv; j++) {
+        const v = j / nv; // 0 = bottom center, 0.5 = top center, 1 = bottom center (other side)
+        const angle = v * Math.PI * 2; // around cross section
+        // Parameterize from right-bottom -> right-side -> roof -> left-side -> left-bottom
+        const sym = Math.abs(v - 0.5) * 2; // 0 at roof center, 1 at bottom center
+        const sideSign = v < 0.5 ? 1 : -1;
+
+        let x, y;
+        if (sym < 0.28) {
+          // Roof / Hood / Windshield top
+          const t = sym / 0.28;
+          x = sideSign * t * hwTop;
+          y = yTop - 0.018 * (1 - t * t);
+        } else if (sym < 0.58) {
+          // Upper greenhouse (side windows / pillars)
+          const t = (sym - 0.28) / 0.30;
+          x = sideSign * (hwTop + t * (hwBelt - hwTop));
+          y = yTop - t * (yTop - yBelt);
+        } else if (sym < 0.88) {
+          // Lower door / fender panel
+          const t = (sym - 0.58) / 0.30;
+          x = sideSign * (hwBelt + Math.sin(t * Math.PI) * 0.015 - t * (hwBelt - hwBot));
+          y = yBelt - t * (yBelt - yBot);
+        } else {
+          // Undercarriage closure
+          const t = (sym - 0.88) / 0.12;
+          x = sideSign * (1 - t) * hwBot;
+          y = yBot;
+        }
+        positions.push(x, y, z);
+      }
+    }
+
+    for (let i = 0; i < nz; i++) {
+      for (let j = 0; j < nv; j++) {
+        const a = i * (nv + 1) + j;
+        const b = (i + 1) * (nv + 1) + j;
+        const c = (i + 1) * (nv + 1) + (j + 1);
+        const d = i * (nv + 1) + (j + 1);
+        indices.push(a, b, c, a, c, d);
+      }
+    }
+
+    const bodyGeo = new THREE.BufferGeometry();
+    bodyGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    bodyGeo.setIndex(indices);
+    bodyGeo.computeVertexNormals();
+    const bodyMesh = new THREE.Mesh(bodyGeo, paintMat);
+    bodyMesh.name = 'Body_Shell';
+    carBody.add(bodyMesh);
+
+    // Recessed Dark Wheel Wells so no gap is visible behind spinning tyres
+    for (const wz of [-1.213, 1.213]) {
+      const wellGeo = new THREE.CylinderGeometry(0.41, 0.41, 1.38, 28);
+      wellGeo.rotateZ(Math.PI / 2);
+      const well = new THREE.Mesh(wellGeo, darkTrimMat);
+      well.position.set(0, 0.366, wz);
+      well.name = wz > 0 ? 'Wheel_Well_Front' : 'Wheel_Well_Rear';
+      carBody.add(well);
+    }
+
+    // Windshield, Rear Window & Side Windows
+    const wsGeo = new THREE.PlaneGeometry(1.12, 0.66);
+    const ws = new THREE.Mesh(wsGeo, glassMat);
+    ws.position.set(0, 1.16, 0.74);
+    ws.rotation.x = -0.68;
+    ws.name = 'Windshield';
+    carBody.add(ws);
+
+    const rwGeo = new THREE.PlaneGeometry(1.06, 0.48);
+    const rw = new THREE.Mesh(rwGeo, glassMat);
+    rw.position.set(0, 1.18, -1.56);
+    rw.rotation.x = Math.PI + 0.32;
+    rw.name = 'Rear_Window';
+    carBody.add(rw);
+
+    // Side window greenhouse panels (Left & Right)
+    for (const sign of [-1, 1]) {
+      const swGeo = new THREE.PlaneGeometry(1.75, 0.42);
+      const sw = new THREE.Mesh(swGeo, glassMat);
+      sw.position.set(sign * 0.655, 1.15, -0.25);
+      sw.rotation.y = sign > 0 ? Math.PI / 2 : -Math.PI / 2;
+      sw.rotation.x = sign * -0.24;
+      carBody.add(sw);
+
+      // Side Mirrors (white cap + dark mount)
+      const mirGroup = new THREE.Group();
+      mirGroup.position.set(sign * 0.76, 0.92, 0.68);
+      const mirHousing = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.11, 0.12), paintMat);
+      mirGroup.add(mirHousing);
+      carBody.add(mirGroup);
+
+      // Front & Rear Door Handles
+      for (const hz of [0.05, -0.78]) {
+        const hdl = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.045, 0.14), handleMat);
+        hdl.position.set(sign * 0.742, 0.80, hz);
+        carBody.add(hdl);
+      }
+
+      // Headlights with inner amber turn signals
+      const hlBox = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.17, 0.08), headLightMat);
+      hlBox.position.set(sign * 0.48, 0.68, 1.63);
+      carBody.add(hlBox);
+      const ambBox = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.08, 0.09), amberMat);
+      ambBox.position.set(sign * 0.37, 0.65, 1.635);
+      carBody.add(ambBox);
+
+      // Rear Bumper Combination Taillights (from rear reference image)
+      const tlBox = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.09, 0.06), tailLightMat);
+      tlBox.position.set(sign * 0.42, 0.44, -1.675);
+      carBody.add(tlBox);
+    }
+
+    // Distinctive Suzuki Alto asymmetrical 4 vertical grille slots + S emblem + 1 horizontal slot
+    for (let k = 0; k < 4; k++) {
+      const slot = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.095, 0.04), darkTrimMat);
+      slot.position.set(0.14 + k * 0.04, 0.63, 1.682);
+      carBody.add(slot);
+    }
+    const hSlot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.028, 0.04), darkTrimMat);
+    hSlot.position.set(-0.20, 0.64, 1.682);
+    carBody.add(hSlot);
+
+    // Front Lower Intake & License Plate Mount
+    const lowerGrille = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.18, 0.04), darkTrimMat);
+    lowerGrille.position.set(0, 0.39, 1.68);
+    carBody.add(lowerGrille);
+    const frontPlate = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.15, 0.06), darkTrimMat);
+    frontPlate.position.set(0.03, 0.40, 1.695);
+    carBody.add(frontPlate);
+    const rearPlate = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.05), darkTrimMat);
+    rearPlate.position.set(0, 0.40, -1.685);
+    carBody.add(rearPlate);
+
+    // Suzuki 'S' Badges (Front & Rear) + Rear Tailgate Handle
+    for (const bz of [1.685, -1.66]) {
+      const badge = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.03), chromeMat);
+      badge.position.set(0, bz > 0 ? 0.63 : 0.82, bz);
+      badge.rotation.z = Math.PI / 4;
+      carBody.add(badge);
+    }
+    const rearHandle = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.04), darkTrimMat);
+    rearHandle.position.set(0, 0.71, -1.665);
+    carBody.add(rearHandle);
+
+    // Function to create a rigged Wheel mesh centered at local (0,0,0)
+    function createWheelNode(name, x, y, z, isLeft) {
+      const wheelNode = new THREE.Group();
+      wheelNode.name = name;
+      wheelNode.position.set(x, y, z);
+
+      // Tyre cylinder centered at (0,0,0), axis along X
+      const tyreGeo = new THREE.CylinderGeometry(0.366, 0.366, 0.175, 36);
+      tyreGeo.rotateZ(Math.PI / 2);
+      const tyreMesh = new THREE.Mesh(tyreGeo, tyreMat);
+      tyreMesh.name = name + '_Tyre';
+      wheelNode.add(tyreMesh);
+
+      // Silver hubcap base disc
+      const hubSign = isLeft ? 1 : -1;
+      const rimGeo = new THREE.CylinderGeometry(0.255, 0.255, 0.182, 24);
+      rimGeo.rotateZ(Math.PI / 2);
+      const rimMesh = new THREE.Mesh(rimGeo, darkTrimMat);
+      wheelNode.add(rimMesh);
+
+      const centerCapGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.19, 24);
+      centerCapGeo.rotateZ(Math.PI / 2);
+      wheelNode.add(new THREE.Mesh(centerCapGeo, silverRimMat));
+
+      const outerRingGeo = new THREE.TorusGeometry(0.23, 0.025, 12, 28);
+      outerRingGeo.rotateY(Math.PI / 2);
+      const outerRing = new THREE.Mesh(outerRingGeo, silverRimMat);
+      outerRing.position.x = hubSign * 0.088;
+      wheelNode.add(outerRing);
+
+      // 6-spoke Suzuki Alto wheel cover (makes rotation immediately visible)
+      for (let s = 0; s < 6; s++) {
+        const angle = (s / 6) * Math.PI * 2;
+        const spokeGeo = new THREE.BoxGeometry(0.025, 0.23, 0.058);
+        const spoke = new THREE.Mesh(spokeGeo, silverRimMat);
+        spoke.position.set(hubSign * 0.088, Math.cos(angle) * 0.12, Math.sin(angle) * 0.12);
+        spoke.rotation.x = -angle;
+        wheelNode.add(spoke);
+      }
+
+      root.add(wheelNode);
+      return wheelNode;
+    }
+
+    const wheelFL = createWheelNode('Wheel_FL',  0.645, 0.366,  1.213, true);
+    const wheelFR = createWheelNode('Wheel_FR', -0.645, 0.366,  1.213, false);
+    const wheelRL = createWheelNode('Wheel_RL',  0.645, 0.366, -1.213, true);
+    const wheelRR = createWheelNode('Wheel_RR', -0.645, 0.366, -1.213, false);
+
+    // Create glTF AnimationClips so each wheel can be animated independently or together
+    function makeSpinClip(clipName, targetNames) {
+      const times = [0, 0.5, 1.0, 1.5, 2.0];
+      const tracks = targetNames.map(n => {
+        const values = [];
+        for (let k = 0; k < times.length; k++) {
+          const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), (k / 4) * Math.PI * 2);
+          values.push(q.x, q.y, q.z, q.w);
+        }
+        return new THREE.QuaternionKeyframeTrack(`${n}.quaternion`, times, values);
+      });
+      return new THREE.AnimationClip(clipName, 2.0, tracks);
+    }
+
+    const animations = [
+      makeSpinClip('Spin_All_Wheels', ['Wheel_FL', 'Wheel_FR', 'Wheel_RL', 'Wheel_RR']),
+      makeSpinClip('Spin_Wheel_FL', ['Wheel_FL']),
+      makeSpinClip('Spin_Wheel_FR', ['Wheel_FR']),
+      makeSpinClip('Spin_Wheel_RL', ['Wheel_RL']),
+      makeSpinClip('Spin_Wheel_RR', ['Wheel_RR'])
+    ];
+
+    // Interactive Sliders
+    const sFL = document.getElementById('sFL'), sFR = document.getElementById('sFR');
+    const sRL = document.getElementById('sRL'), sRR = document.getElementById('sRR');
+    const sSteer = document.getElementById('sSteer');
+
+    const clock = new THREE.Clock();
+    let spinFL = 0, spinFR = 0, spinRL = 0, spinRR = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+
+      document.getElementById('vFL').textContent = sFL.value;
+      document.getElementById('vFR').textContent = sFR.value;
+      document.getElementById('vRL').textContent = sRL.value;
+      document.getElementById('vRR').textContent = sRR.value;
+      document.getElementById('vSteer').textContent = sSteer.value + '°';
+
+      spinFL += parseFloat(sFL.value) * dt;
+      spinFR += parseFloat(sFR.value) * dt;
+      spinRL += parseFloat(sRL.value) * dt;
+      spinRR += parseFloat(sRR.value) * dt;
+
+      const steerRad = THREE.MathUtils.degToRad(parseFloat(sSteer.value));
+
+      wheelFL.rotation.set(spinFL, steerRad, 0, 'YXZ');
+      wheelFR.rotation.set(spinFR, steerRad, 0, 'YXZ');
+      wheelRL.rotation.set(spinRL, 0, 0, 'YXZ');
+      wheelRR.rotation.set(spinRR, 0, 0, 'YXZ');
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Export Binary .GLB
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      // Reset wheel rotations to bind pose before exporting
+      [wheelFL, wheelFR, wheelRL, wheelRR].forEach(w => w.rotation.set(0, 0, 0));
+      const exporter = new GLTFExporter();
+      exporter.parse(
+        root,
+        (glbBuffer) => {
+          const blob = new Blob([glbBuffer], { type: 'model/gltf-binary' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'suzuki_alto_rigged.glb';
+          a.click();
+        },
+        (err) => console.error(err),
+        { binary: true, animations }
+      );
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>

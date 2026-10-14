@@ -27,6 +27,15 @@ async function takeScreenshot() {
     await page.goto('http://localhost:3000', { waitUntil: 'networkidle0', timeout: 15000 });
     // Allow Three.js clock and animations to settle
     await new Promise((r) => setTimeout(r, 2500));
+
+    const action = process.argv[3];
+    if (action && action.startsWith('press:')) {
+      const key = action.replace('press:', '');
+      console.log(`Sending key press '${key}' to page...`);
+      await page.keyboard.press(key);
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+
     const resolvedPath = path.resolve(outputPath);
     await page.screenshot({ path: resolvedPath });
     console.log('Screenshot successfully saved to:', resolvedPath);

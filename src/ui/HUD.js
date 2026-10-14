@@ -20,8 +20,8 @@ export class HUD {
     this.container = document.createElement('div');
     this.container.id = 'hud-overlay';
     this.container.innerHTML = `
-      <!-- Top Left: Mission / Objective Pill (Matching Reference) -->
-      <div class="hud-top-left">
+      <!-- Top Bar: Mission Pill (Left) & Model Switcher (Right) -->
+      <div class="hud-top-bar">
         <div class="mission-pill">
           <div class="mission-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="#f39c12">
@@ -32,6 +32,11 @@ export class HUD {
             <div class="mission-title">Go to SINES</div>
             <div class="mission-subtitle">From Gate 2 to SINES</div>
           </div>
+        </div>
+
+        <div class="model-switcher-pill">
+          <button id="btn-model-a" class="model-btn active" title="Press 1">1: Option A (Procedural)</button>
+          <button id="btn-model-b" class="model-btn" title="Press 2">2: Option B (Photo-Textured)</button>
         </div>
       </div>
 
@@ -81,6 +86,14 @@ export class HUD {
     this.minimapCanvas = document.getElementById('minimap-canvas');
     if (this.minimapCanvas) {
       this.minimapCtx = this.minimapCanvas.getContext('2d');
+    }
+
+    // Model Switcher buttons
+    const btnA = document.getElementById('btn-model-a');
+    const btnB = document.getElementById('btn-model-b');
+    if (btnA && btnB) {
+      btnA.addEventListener('click', () => eventBus.emit('vehicle:switchModel', 'procedural'));
+      btnB.addEventListener('click', () => eventBus.emit('vehicle:switchModel', 'phototextured'));
     }
   }
 
@@ -237,6 +250,20 @@ export class HUD {
       if (data.position) {
         const rotY = this.vehicleController?.physics?.rotation?.y || 0;
         this.renderMinimap(data.position.x, data.position.z, rotY);
+      }
+    });
+
+    eventBus.on('vehicle:modelSwitched', (modelType) => {
+      const btnA = document.getElementById('btn-model-a');
+      const btnB = document.getElementById('btn-model-b');
+      if (btnA && btnB) {
+        if (modelType === 'procedural') {
+          btnA.classList.add('active');
+          btnB.classList.remove('active');
+        } else {
+          btnB.classList.add('active');
+          btnA.classList.remove('active');
+        }
       }
     });
   }
